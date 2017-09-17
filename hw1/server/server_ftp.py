@@ -1,6 +1,7 @@
 from socket import *    # Used for sending and receiving information over sockets
 import shlex            # need this for it's split that keeps quoted filenames
 import pickle           # need this for serializing objects
+import os               # Need this for reading from the file system
 
 class FTPServer:
     def __init__(self, server_port=5000):
@@ -25,12 +26,11 @@ class FTPServer:
             conn_socket, addr = self.server_socket.accept()
             message = conn_socket.recv(1024)
             message = message.decode()
-            self.__check_command(message)
+            self.__check_command(message, conn_socket)
             conn_socket.send(message.upper().encode())
 
-
     # Private methods
-    def __check_command(self, command):
+    def __check_command(self, command, connection_socket):
         if not command:
             print("Empty command!")
             return
@@ -43,9 +43,9 @@ class FTPServer:
             print("Listing directory contents")
             my_path = os.getcwd()
             f_list = os.listdir(my_path)
+            print(f_list)
             serialized_list = pickle.dumps(f_list)
-            # connectionSocket.send(serialized_list)
-            # self.server_socket.sendto(modified_message.upper().encode(), client_address)
+            connection_socket.send(serialized_list)
 
         elif command_and_args[0].lower() == "get":
             print("Get a file")

@@ -34,9 +34,11 @@
       <file leaf-file-name="client_ftp.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/client/client_ftp.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="198">
-              <caret line="12" column="45" lean-forward="false" selection-start-line="12" selection-start-column="45" selection-end-line="12" selection-end-column="45" />
-              <folding />
+            <state relative-caret-position="351">
+              <caret line="37" column="0" lean-forward="true" selection-start-line="37" selection-start-column="0" selection-end-line="37" selection-end-column="0" />
+              <folding>
+                <element signature="e#0#20#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -44,8 +46,8 @@
       <file leaf-file-name="server_ftp.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/server/server_ftp.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="238">
-              <caret line="17" column="36" lean-forward="false" selection-start-line="17" selection-start-column="36" selection-end-line="17" selection-end-column="36" />
+            <state relative-caret-position="308">
+              <caret line="50" column="31" lean-forward="true" selection-start-line="50" selection-start-column="31" selection-end-line="50" selection-end-column="31" />
               <folding>
                 <element signature="e#0#81#0" expanded="true" />
               </folding>
@@ -61,8 +63,8 @@
         <option value="$PROJECT_DIR$/server_msg.py" />
         <option value="$PROJECT_DIR$/client_msg.py" />
         <option value="$PROJECT_DIR$/server/server_msg.py" />
-        <option value="$PROJECT_DIR$/client/client_ftp.py" />
         <option value="$PROJECT_DIR$/server/server_ftp.py" />
+        <option value="$PROJECT_DIR$/client/client_ftp.py" />
       </list>
     </option>
   </component>
@@ -293,8 +295,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/server/server_ftp.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="238">
-          <caret line="17" column="36" lean-forward="false" selection-start-line="17" selection-start-column="36" selection-end-line="17" selection-end-column="36" />
+        <state relative-caret-position="308">
+          <caret line="50" column="31" lean-forward="true" selection-start-line="50" selection-start-column="31" selection-end-line="50" selection-end-column="31" />
           <folding>
             <element signature="e#0#81#0" expanded="true" />
           </folding>
@@ -303,9 +305,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/client/client_ftp.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="198">
-          <caret line="12" column="45" lean-forward="false" selection-start-line="12" selection-start-column="45" selection-end-line="12" selection-end-column="45" />
-          <folding />
+        <state relative-caret-position="351">
+          <caret line="37" column="0" lean-forward="true" selection-start-line="37" selection-start-column="0" selection-end-line="37" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#20#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

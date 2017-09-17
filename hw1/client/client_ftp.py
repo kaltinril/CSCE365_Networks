@@ -1,5 +1,5 @@
 from socket import *
-
+import pickle
 
 class FTPClient:
     def __init__(self, server_port=5000, server_name='localhost'):
@@ -18,8 +18,8 @@ class FTPClient:
 
     def get_message(self):
         # Receive a response from the Server and print it
-        modified_message, server_address = self.client_socket.recvfrom(2048)
-        return modified_message, server_address
+        modified_message = self.client_socket.recv(2048)
+        return modified_message
 
     def __del__(self):
         # Clean up
@@ -32,12 +32,13 @@ def main():
     msg_to_send = input("Input lowercase sentence:")
 
     # Create instance of client class, open socket, and send message
-    server = FTPClient(12000)
+    server = FTPClient(12000, "localhost")
     server.open_socket()
     server.send_message(msg_to_send)
 
-    modified_message, server_address = server.get_message()
-    print(modified_message.decode())
+    modified_message = server.get_message()
+    f_list = pickle.loads(modified_message)
+    print(f_list)
 
 
 # Start the server

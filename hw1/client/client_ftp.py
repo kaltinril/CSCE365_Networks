@@ -1,11 +1,13 @@
 from socket import *
 import pickle
 import shlex
+import sys
 
 # Global settings
 DEFAULT_PORT = 5000
 CONNECTION_TIMEOUT = 60  # seconds
 RECEIVE_BUFFER = 1024  # bytes
+SEND_BUFFER = 1024  # bytes
 
 
 class FTPClient:
@@ -27,6 +29,48 @@ class FTPClient:
         # Receive a response from the Server and print it
         modified_message = self.client_socket.recv(RECEIVE_BUFFER)
         return modified_message
+
+    def command_get(self, message, filename):
+        # Send the get command to the server
+        self.send_message(message)
+
+        # Get the bytes that we will be receiving
+        modified_message = self.get_message()
+        f_list = pickle.loads(modified_message)
+        print(f_list)
+
+        if not f_list.startswith("Error:"):
+            f_list = f_list.split()     # "sending filename.py size 123"
+            size = f_list[len(f_list) - 1]
+            self.__recv_file(filename, int(size))
+
+    def __recv_file(self, filename, size):
+        try:
+            file = open(filename, 'wb')
+            data = " - "
+            received_data = 0
+            while data:
+                data = self.client_socket.recv(RECEIVE_BUFFER)
+                file.write(data)
+                received_data = received_data + RECEIVE_BUFFER
+                if received_data >= size:
+                    print("File " + filename + " done downloading")
+                    file.close()
+                    break
+
+        except IOError:
+            print("Could not read file: ", filename)
+
+        except:
+            print("Unexpected error: ", sys.exc_info()[0])
+
+    def command_list(self, message):
+        # Send the get command to the server
+        self.send_message(message)
+
+        modified_message = self.get_message()
+        f_list = pickle.loads(modified_message)
+        print(f_list)
 
     def __del__(self):
         # Clean up
@@ -59,22 +103,17 @@ def main():
 
                 running = False
                 continue  # exit this iteration
+
             elif command.lower() == "get":
+                if len(command_and_args) > 1:
+                    filename = command_and_args[1]
+                    print("Requesting file : " + filename)
+                    server.command_get(msg_to_send, filename)
+                else:
+                    print("Error: Must supply a filename with the get command!")
 
-                # Send the get command to the server
-                server.send_message(msg_to_send)
-
-                modified_message = server.get_message()
-                f_list = pickle.loads(modified_message)
-                print(f_list)
             elif command.lower() == "list":
-
-                # Send the get command to the server
-                server.send_message(msg_to_send)
-
-                modified_message = server.get_message()
-                f_list = pickle.loads(modified_message)
-                print(f_list)
+                server.command_list(msg_to_send)
 
 
 # Start the server

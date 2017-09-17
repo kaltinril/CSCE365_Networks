@@ -9,6 +9,8 @@ import threading
 DEFAULT_PORT = 5000
 CONNECTION_TIMEOUT = 60  # seconds
 RECEIVE_BUFFER = 1024  # bytes
+SEND_BUFFER = 1024  # bytes
+
 
 class FTPServer:
     def __init__(self, server_port=DEFAULT_PORT):
@@ -45,12 +47,12 @@ class FTPServer:
         # Loop until the end of time
         while True:
             try:
-                print("Looping" + str(connection.fileno()))
                 message = connection.recv(RECEIVE_BUFFER)
                 message = message.decode()
                 self.__check_command(message, connection)
             except:
-                connection.close()
+                if connection.fileno() != -1:
+                    connection.close()
                 return False
 
 
@@ -65,42 +67,62 @@ class FTPServer:
         print(command_and_args)
 
         if command_and_args[0].lower() == "list":
-            print("Listing directory contents")
-            my_path = os.getcwd()
-            f_list = os.listdir(my_path)
-            print(f_list)
-            e_list = pickle.dumps(f_list)
-            connection_socket.send(e_list)
+            self.__send_list(connection_socket)
 
         elif command_and_args[0].lower() == "get":
-            print("Get a file")
-            if len(command_and_args) < 2:
-                e_list = pickle.dumps("Error: No filename provided with get!")
-                connection_socket.send(e_list)
-            else:
-                filename = command_and_args[1]
-                if os.path.exists(filename):
-                    try:
-                        size = os.stat(filename).st_size
-                        e_list = pickle.dumps("sending " + filename + " size " + str(size))
-                        connection_socket.send(e_list)
-                    except FileNotFoundError:
-                        # doesn't exist
-                        e_list = pickle.dumps("Error: File not found! " + filename)
-                        connection_socket.send(e_list)
-                    except:
-                        print("Unexpected error:", sys.exc_info()[0])
-                        e_list = pickle.dumps("Error: Unknown error with file! " + filename)
-                        connection_socket.send(e_list)
-                else:
-                    e_list = pickle.dumps("Error: File not found! " + filename)
-                    connection_socket.send(e_list)
+            self.__send_file_details(connection_socket, command_and_args)
 
         elif command_and_args[0].lower() == "exit":
             print("Exit")
             self.conn_socket.close()
+
         else:
             print("Unknown command! " + command)
+
+    def __send_list(self, connection):
+        print("Listing directory contents")
+        my_path = os.getcwd()
+        f_list = os.listdir(my_path)
+        e_list = pickle.dumps(f_list)
+        connection.send(e_list)
+
+    def __send_file_details(self, connection, command_and_args):
+        print("Get a file")
+        if len(command_and_args) < 2:
+            e_list = pickle.dumps("Error: No filename provided with get!")
+            connection.send(e_list)
+        else:
+            filename = command_and_args[1]
+            if os.path.exists(filename):
+                try:
+                    size = os.stat(filename).st_size
+                    e_list = pickle.dumps("sending " + filename + " size " + str(size))
+                    connection.send(e_list)
+
+                    self.__send_file(connection, filename)
+
+                except FileNotFoundError:
+                    # doesn't exist
+                    e_list = pickle.dumps("Error: File not found! " + filename)
+                    connection.send(e_list)
+                except:
+                    print("Unexpected error:", sys.exc_info()[0])
+                    e_list = pickle.dumps("Error: Unknown error with file! " + filename)
+                    connection.send(e_list)
+            else:
+                e_list = pickle.dumps("Error: File not found! " + filename)
+                connection.send(e_list)
+
+    def __send_file(self, connection, filename):
+        try:
+            file = open(filename, 'rb')
+            data = file.read(SEND_BUFFER)
+            while data:
+                connection.send(data)
+                data = file.read(SEND_BUFFER)
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            connection.send("Error: Unknown error reading file or sending file " + filename)
 
     def __del__(self):
         # Clean up

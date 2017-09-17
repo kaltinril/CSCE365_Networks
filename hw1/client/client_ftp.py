@@ -30,6 +30,13 @@ class FTPClient:
 def main():
     running = True
     print("Enter a command (list, get, exit)")
+    server_ip = 5000
+    server_name = "localhost"
+
+    # Create instance of client class, open socket, and send message
+    server = FTPClient(server_ip, server_name)
+    server.open_socket()
+
     while running:
         # Prompt user for input and send that to the Server
         msg_to_send = input(">:")
@@ -37,13 +44,10 @@ def main():
             running = False
             continue  # exit this iteration
 
-        # Create instance of client class, open socket, and send message
-        server = FTPClient(12000, "localhost")
-        server.open_socket()
+        # Send a command to the server
         server.send_message(msg_to_send)
 
         modified_message = server.get_message()
-        print(modified_message)
         f_list = pickle.loads(modified_message)
         print(f_list)
 

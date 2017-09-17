@@ -2,11 +2,14 @@ from socket import *    # Used for sending and receiving information over socket
 import shlex            # need this for it's split that keeps quoted filenames
 import pickle           # need this for serializing objects
 import os               # Need this for reading from the file system
+import os.path
+
 
 class FTPServer:
     def __init__(self, server_port=5000):
         self.server_port = server_port
         self.server_socket = None
+        self.conn_socket = None
 
     def open_socket(self):
         # Open a socket
@@ -22,11 +25,15 @@ class FTPServer:
         print("The server is ready to receive")
 
     def listen(self):
+        # Blocking wait for a "SYN" message
+        self.conn_socket, address = self.server_socket.accept()
+
+        # Loop until the end of time
         while True:
-            conn_socket, addr = self.server_socket.accept()
-            message = conn_socket.recv(1024)
+            message = self.conn_socket.recv(1024)
             message = message.decode()
-            self.__check_command(message, conn_socket)
+            self.__check_command(message, self.conn_socket)
+
 
     # Private methods
     def __check_command(self, command, connection_socket):
@@ -48,12 +55,27 @@ class FTPServer:
 
         elif command_and_args[0].lower() == "get":
             print("Get a file")
-            # TODO: Check if the file exists first!
-            filename = command_and_args[1]
-            size = os.stat(filename).st_size
-
-            e_list = pickle.dumps("sending " + filename + " size " + size)
-            connection_socket.send(e_list)
+            if len(command_and_args) < 2:
+                e_list = pickle.dumps("Error: No filename provided with get!")
+                connection_socket.send(e_list)
+            else:
+                filename = command_and_args[1]
+                if os.path.exists(filename):
+                    try:
+                        size = os.stat(filename).st_size
+                        e_list = pickle.dumps("sending " + filename + " size " + str(size))
+                        connection_socket.send(e_list)
+                    except FileNotFoundError:
+                        # doesn't exist
+                        e_list = pickle.dumps("Error: File not found! " + filename)
+                        connection_socket.send(e_list)
+                    except:
+                        print("Unexpected error:", sys.exc_info()[0])
+                        e_list = pickle.dumps("Error: Unknown error with file! " + filename)
+                        connection_socket.send(e_list)
+                else:
+                    e_list = pickle.dumps("Error: File not found! " + filename)
+                    connection_socket.send(e_list)
 
         elif command_and_args[0].lower() == "exit":
             print("Exit")
@@ -68,7 +90,7 @@ class FTPServer:
 
 
 def main():
-    server = FTPServer(12000)
+    server = FTPServer(5000)
     server.open_socket()
     server.listen()
 

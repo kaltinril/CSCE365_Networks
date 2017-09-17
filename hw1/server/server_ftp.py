@@ -19,8 +19,20 @@ class FTPServer:
     def listen(self):
         while True:
             message, client_address = self.server_socket.recvfrom(2048)
-            modified_message = message.decode().upper()
-            self.server_socket.sendto(modified_message.encode(), client_address)
+            modified_message = message.decode()
+            self.__check_command(modified_message)
+            self.server_socket.sendto(modified_message.upper().encode(), client_address)
+
+    # Private methods
+    def __check_command(self, command):
+        if (command.lower() == "list"):
+            print("Listing directory contents")
+        elif (command.lower() == "get"):
+            print("Get a file")
+        elif (command.lower() == "exit"):
+            print("Exit")
+        else:
+            print("Unknown command! " + command)
 
     def __del__(self):
         # Clean up

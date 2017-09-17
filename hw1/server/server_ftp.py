@@ -1,4 +1,5 @@
-from socket import *
+from socket import *  # Used for sending and receiving information over sockets
+import shlex  # need this for it's split that keeps quoted filenames
 
 
 class FTPServer:
@@ -25,11 +26,15 @@ class FTPServer:
 
     # Private methods
     def __check_command(self, command):
-        if (command.lower() == "list"):
+        command_and_args = shlex.split(command)
+
+        print(command_and_args)
+
+        if command_and_args[1].lower() == "list":
             print("Listing directory contents")
-        elif (command.lower() == "get"):
+        elif command_and_args[1].lower() == "get":
             print("Get a file")
-        elif (command.lower() == "exit"):
+        elif command_and_args[1].lower() == "exit":
             print("Exit")
         else:
             print("Unknown command! " + command)

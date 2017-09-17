@@ -3,13 +3,19 @@ import shlex            # need this for it's split that keeps quoted filenames
 import pickle           # need this for serializing objects
 import os               # Need this for reading from the file system
 import os.path
+import threading
 
+# Global settings
+DEFAULT_PORT = 5000
+CONNECTION_TIMEOUT = 60  # seconds
+RECEIVE_BUFFER = 1024  # bytes
 
 class FTPServer:
-    def __init__(self, server_port=5000):
+    def __init__(self, server_port=DEFAULT_PORT):
         self.server_port = server_port
         self.server_socket = None
         self.conn_socket = None
+        self.threads = []
 
     def open_socket(self):
         # Open a socket
@@ -26,13 +32,26 @@ class FTPServer:
 
     def listen(self):
         # Blocking wait for a "SYN" message
-        self.conn_socket, address = self.server_socket.accept()
+        while True:
+            self.conn_socket, address = self.server_socket.accept()
+            self.conn_socket.settimeout(CONNECTION_TIMEOUT)
 
+            # Start a new thread for this accepted connection
+            t = threading.Thread(target=self.worker, args=(self.conn_socket, address))
+            self.threads.append(t)
+            t.start()
+
+    def worker(self, connection, address):
         # Loop until the end of time
         while True:
-            message = self.conn_socket.recv(1024)
-            message = message.decode()
-            self.__check_command(message, self.conn_socket)
+            try:
+                print("Looping" + str(connection.fileno()))
+                message = connection.recv(RECEIVE_BUFFER)
+                message = message.decode()
+                self.__check_command(message, connection)
+            except:
+                connection.close()
+                return False
 
 
     # Private methods
@@ -79,6 +98,7 @@ class FTPServer:
 
         elif command_and_args[0].lower() == "exit":
             print("Exit")
+            self.conn_socket.close()
         else:
             print("Unknown command! " + command)
 

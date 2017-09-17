@@ -12,19 +12,19 @@
   <component name="FileEditorManager">
     <leaf>
       <file leaf-file-name="server_msg.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/server_msg.py">
+        <entry file="file://$PROJECT_DIR$/server/server_msg.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="33">
-              <caret line="1" column="0" lean-forward="true" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
+            <state relative-caret-position="330">
+              <caret line="10" column="0" lean-forward="true" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
       <file leaf-file-name="client_msg.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/client_msg.py">
+        <entry file="file://$PROJECT_DIR$/client/client_msg.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="198">
+            <state relative-caret-position="-76">
               <caret line="6" column="0" lean-forward="true" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="0" />
               <folding />
             </state>
@@ -38,6 +38,7 @@
       <list>
         <option value="$PROJECT_DIR$/server_msg.py" />
         <option value="$PROJECT_DIR$/client_msg.py" />
+        <option value="$PROJECT_DIR$/server/server_msg.py" />
       </list>
     </option>
   </component>
@@ -71,6 +72,16 @@
               <item name="hw1" type="b2602c69:ProjectViewProjectNode" />
               <item name="hw1" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="hw1" type="b2602c69:ProjectViewProjectNode" />
+              <item name="hw1" type="462c0819:PsiDirectoryNode" />
+              <item name="client" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="hw1" type="b2602c69:ProjectViewProjectNode" />
+              <item name="hw1" type="462c0819:PsiDirectoryNode" />
+              <item name="server" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
@@ -87,6 +98,12 @@
       </console-settings>
     </option>
   </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\thisisme1\Documents\git\CSCE365_Networks\hw1\server" />
+      <recent name="C:\Users\thisisme1\Documents\git\CSCE365_Networks\hw1\client" />
+    </key>
+  </component>
   <component name="RunDashboard">
     <option name="ruleStates">
       <list>
@@ -99,7 +116,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.client_msg">
+  <component name="RunManager" selected="Python.server_msg">
     <configuration name="client_msg" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -112,7 +129,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="hw1" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/client_msg.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\thisisme1\Documents\git\CSCE365_Networks\hw1\client\client_msg.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -129,7 +146,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="hw1" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/server_msg.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\thisisme1\Documents\git\CSCE365_Networks\hw1\server\server_msg.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -140,8 +157,8 @@
     </list>
     <recent_temporary>
       <list size="2">
-        <item index="0" class="java.lang.String" itemvalue="Python.client_msg" />
-        <item index="1" class="java.lang.String" itemvalue="Python.server_msg" />
+        <item index="0" class="java.lang.String" itemvalue="Python.server_msg" />
+        <item index="1" class="java.lang.String" itemvalue="Python.client_msg" />
       </list>
     </recent_temporary>
   </component>
@@ -190,17 +207,17 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/server_msg.py">
+    <entry file="file://$PROJECT_DIR$/server/server_msg.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="33">
-          <caret line="1" column="0" lean-forward="true" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
+        <state relative-caret-position="330">
+          <caret line="10" column="0" lean-forward="true" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/client_msg.py">
+    <entry file="file://$PROJECT_DIR$/client/client_msg.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="198">
+        <state relative-caret-position="-76">
           <caret line="6" column="0" lean-forward="true" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="0" />
           <folding />
         </state>

@@ -27,7 +27,6 @@ class FTPServer:
             message = conn_socket.recv(1024)
             message = message.decode()
             self.__check_command(message, conn_socket)
-            conn_socket.send(message.upper().encode())
 
     # Private methods
     def __check_command(self, command, connection_socket):
@@ -44,11 +43,18 @@ class FTPServer:
             my_path = os.getcwd()
             f_list = os.listdir(my_path)
             print(f_list)
-            serialized_list = pickle.dumps(f_list)
-            connection_socket.send(serialized_list)
+            e_list = pickle.dumps(f_list)
+            connection_socket.send(e_list)
 
         elif command_and_args[0].lower() == "get":
             print("Get a file")
+            # TODO: Check if the file exists first!
+            filename = command_and_args[1]
+            size = os.stat(filename).st_size
+
+            e_list = pickle.dumps("sending " + filename + " size " + size)
+            connection_socket.send(e_list)
+
         elif command_and_args[0].lower() == "exit":
             print("Exit")
         else:

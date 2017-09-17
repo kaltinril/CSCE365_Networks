@@ -28,17 +28,24 @@ class FTPClient:
 
 
 def main():
-    # Prompt user for input and send that to the Server
-    msg_to_send = input("Input lowercase sentence:")
+    running = True
+    print("Enter a command (list, get, exit)")
+    while running:
+        # Prompt user for input and send that to the Server
+        msg_to_send = input(">:")
+        if msg_to_send.lower() == 'exit':
+            running = False
+            continue  # exit this iteration
 
-    # Create instance of client class, open socket, and send message
-    server = FTPClient(12000, "localhost")
-    server.open_socket()
-    server.send_message(msg_to_send)
+        # Create instance of client class, open socket, and send message
+        server = FTPClient(12000, "localhost")
+        server.open_socket()
+        server.send_message(msg_to_send)
 
-    modified_message = server.get_message()
-    f_list = pickle.loads(modified_message)
-    print(f_list)
+        modified_message = server.get_message()
+        print(modified_message)
+        f_list = pickle.loads(modified_message)
+        print(f_list)
 
 
 # Start the server

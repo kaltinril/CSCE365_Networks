@@ -9,23 +9,28 @@ class FTPServer:
 
     def open_socket(self):
         # Open a socket
-        self.server_socket = socket(AF_INET, SOCK_DGRAM)
+        self.server_socket = socket(AF_INET, SOCK_STREAM)
 
         # Listen on serverPort for messages
         self.server_socket.bind(('', self.server_port))
+
+        # TCP - Begin listening for traffic
+        self.server_socket.listen(1)
 
         # Wait for input, and respond
         print("The server is ready to receive")
 
     def listen(self):
         while True:
-            message, client_address = self.server_socket.recvfrom(2048)
-            modified_message = message.decode()
-            self.__check_command(modified_message, client_address)
-            self.server_socket.sendto(modified_message.upper().encode(), client_address)
+            conn_socket, addr = self.server_socket.accept()
+            message = conn_socket.recv(1024)
+            message = message.decode()
+            self.__check_command(message)
+            conn_socket.send(message.upper().encode())
+
 
     # Private methods
-    def __check_command(self, command, client_address):
+    def __check_command(self, command):
         if not command:
             print("Empty command!")
             return
@@ -53,6 +58,7 @@ class FTPServer:
         # Clean up
         print("Closing the socket")
         self.server_socket.close()
+        self.conn_socket.close()
 
 
 def main():

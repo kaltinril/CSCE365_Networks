@@ -9,11 +9,12 @@ class FTPClient:
 
     def open_socket(self):
         # Open a socket
-        self.client_socket = socket(AF_INET, SOCK_DGRAM)
+        self.client_socket = socket(AF_INET, SOCK_STREAM)
+        self.client_socket.connect((self.server_name, self.server_port))
         print("Connection Opened with server")
 
     def send_message(self, message):
-        self.client_socket.sendto(message.encode(), (self.server_name, self.server_port))
+        self.client_socket.send(message.encode())
 
     def get_message(self):
         # Receive a response from the Server and print it

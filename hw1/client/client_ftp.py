@@ -5,13 +5,14 @@ import sys
 
 # Global settings
 DEFAULT_PORT = 5000
+DEFAULT_SERVER = "localhost"
 CONNECTION_TIMEOUT = 60  # seconds
 RECEIVE_BUFFER = 1024  # bytes
 SEND_BUFFER = 1024  # bytes
 
 
 class FTPClient:
-    def __init__(self, server_port=DEFAULT_PORT, server_name='localhost'):
+    def __init__(self, server_port=DEFAULT_PORT, server_name=DEFAULT_SERVER):
         self.server_port = server_port
         self.server_name = server_name
         self.client_socket = None
@@ -77,17 +78,31 @@ class FTPClient:
         print("Closing the socket")
         self.client_socket.close()
 
+def print_help(script_name):
+    print("Usage:   " + script_name + " SERVER_NAME PORT_NUMBER")
+    print("Example: " + script_name + " localhost 5000")
 
-def main():
-    running = True
-    print("Enter a command (list, get, exit)")
-    server_ip = DEFAULT_PORT
-    server_name = "localhost"
+def main(argv):
+    script_name = argv[0]  # Snag the first argument (The script name
+    port_to_use = DEFAULT_PORT
+    server_to_use = DEFAULT_SERVER
+
+    # Make sure we have exactly
+    if len(argv) != 3:
+        sys.stderr.write("ERROR: Invalid number of arguments\n\n")
+        print_help(script_name)
+        sys.exit(2)
+    else:
+        server_to_use = argv[1]
+        port_to_use = int(argv[2])
 
     # Create instance of client class, open socket, and send message
-    server = FTPClient(server_ip, server_name)
+    print("Connecting to " + server_to_use + ":" + str(port_to_use))
+    server = FTPClient(port_to_use, server_to_use)
     server.open_socket()
 
+    running = True
+    print("Enter a command (list, get, exit)")
     while running:
         # Prompt user for input and send that to the Server
         msg_to_send = input(">:")
@@ -116,5 +131,6 @@ def main():
                 server.command_list(msg_to_send)
 
 
-# Start the server
-main()
+# Start the client
+if __name__ == "__main__":
+    main(sys.argv)

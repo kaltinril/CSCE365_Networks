@@ -2,15 +2,16 @@ from socket import *    # Used for sending and receiving information over socket
 import shlex            # need this for it's split that keeps quoted filenames
 import pickle           # need this for serializing objects
 import os               # Need this for reading from the file system
-import os.path
-import threading
+import os.path          # Used to read the file
+import threading        # Used to start a separate thread for each new client connection
+import sys              # Used to get ARGV (Argument values)
+import getopt           # Parse the command line arguments so we can have options
 
 # Global settings
 DEFAULT_PORT = 5000
 CONNECTION_TIMEOUT = 60  # seconds
 RECEIVE_BUFFER = 1024  # bytes
 SEND_BUFFER = 1024  # bytes
-
 
 class FTPServer:
     def __init__(self, server_port=DEFAULT_PORT):
@@ -33,7 +34,7 @@ class FTPServer:
         print("The server is ready to receive")
 
     def listen(self):
-        # Blocking wait for a "SYN" message
+        # Blocking wait for a "SYN" message, break on CTRL+C
         while True:
             self.conn_socket, address = self.server_socket.accept()
             self.conn_socket.settimeout(CONNECTION_TIMEOUT)
@@ -44,7 +45,7 @@ class FTPServer:
             t.start()
 
     def worker(self, connection, address):
-        # Loop until the end of time
+        # Loop until the end of time, or a key press
         while True:
             try:
                 message = connection.recv(RECEIVE_BUFFER)
@@ -54,7 +55,6 @@ class FTPServer:
                 if connection.fileno() != -1:
                     connection.close()
                 return False
-
 
     # Private methods
     def __check_command(self, command, connection_socket):
@@ -130,12 +130,26 @@ class FTPServer:
         self.server_socket.close()
         self.conn_socket.close()
 
+def print_help(script_name):
+    print("Usage: " + script_name + " PORT_NUMBER")
 
-def main():
-    server = FTPServer(5000)
+def main(argv):
+    script_name = argv[0]  # Snag the first argument (The script name
+    port_to_use = DEFAULT_PORT
+
+    # Make sure we have exactly
+    if len(argv) == 2:
+        port_to_use = int(argv[1])
+    elif len(argv) > 2:
+        sys.stderr.write("ERROR: Too many arguments specified\n\n")
+        print_help(script_name)
+        sys.exit(2)
+
+    server = FTPServer(port_to_use)
     server.open_socket()
     server.listen()
 
 
 # Start the server
-main()
+if __name__ == "__main__":
+    main(sys.argv)

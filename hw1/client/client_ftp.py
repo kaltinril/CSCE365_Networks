@@ -7,8 +7,8 @@ import sys
 DEFAULT_PORT = 5000
 DEFAULT_SERVER = "localhost"
 CONNECTION_TIMEOUT = 60  # seconds
-RECEIVE_BUFFER = 1024  # bytes
-SEND_BUFFER = 1024  # bytes
+RECEIVE_BUFFER = 768  # bytes
+SEND_BUFFER = 768  # bytes
 
 
 class FTPClient:
@@ -53,7 +53,7 @@ class FTPClient:
             while data:
                 data = self.client_socket.recv(RECEIVE_BUFFER)
                 file.write(data)
-                received_data = received_data + RECEIVE_BUFFER
+                received_data = received_data + len(data)
                 if received_data >= size:
                     print("File " + filename + " done downloading")
                     file.close()

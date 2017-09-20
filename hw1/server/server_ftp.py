@@ -79,7 +79,9 @@ class FTPServer:
             self.conn_socket.close()
 
         else:
-            self.__log_connection_data("Unknown command!", address)
+            self.__log_connection_data("Invalid command!", address)
+            e_list = pickle.dumps("Invalid command! " + command_and_args[0].lower())
+            connection_socket.send(e_list)
 
     def __send_list(self, connection, address):
         self.__log_connection_data("Listing directory contents", address)

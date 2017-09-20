@@ -129,6 +129,8 @@ def main(argv):
 
             elif command.lower() == "list":
                 server.command_list(msg_to_send)
+            else:  # Allow other commands to be sent to the server, used to test "invalid command" reply from server.
+                server.command_list(msg_to_send)
 
 
 # Start the client

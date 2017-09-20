@@ -41,6 +41,7 @@ class FTPServer:
 
             # Start a new thread for this accepted connection
             t = threading.Thread(target=self.worker, args=(self.conn_socket, address))
+            print("Accepting connection from " + str(address))
             self.threads.append(t)
             t.start()
 
@@ -50,44 +51,46 @@ class FTPServer:
             try:
                 message = connection.recv(RECEIVE_BUFFER)
                 message = message.decode()
-                self.__check_command(message, connection)
+                self.__check_command(message, connection, address)
             except:
                 if connection.fileno() != -1:
                     connection.close()
                 return False
 
     # Private methods
-    def __check_command(self, command, connection_socket):
+    def __log_connection_data(self, string, address):
+        print(str(address[0]) + ":" + str(address[1]) + " - " + string)
+
+    def __check_command(self, command, connection_socket, address):
         if not command:
-            print("Empty command!")
+            self.__log_connection_data("Empty command!", address)
             return
 
         # Split the string on spaces, if there are quotes, spaces inside that are preserved
         command_and_args = shlex.split(command)
-        print(command_and_args)
 
         if command_and_args[0].lower() == "list":
-            self.__send_list(connection_socket)
+            self.__send_list(connection_socket, address)
 
         elif command_and_args[0].lower() == "get":
-            self.__send_file_details(connection_socket, command_and_args)
+            self.__send_file_details(connection_socket, command_and_args, address)
 
         elif command_and_args[0].lower() == "exit":
-            print("Exit")
+            self.__log_connection_data("Clint requested disconnect.", address)
             self.conn_socket.close()
 
         else:
-            print("Unknown command! " + command)
+            self.__log_connection_data("Unknown command!", address)
 
-    def __send_list(self, connection):
-        print("Listing directory contents")
+    def __send_list(self, connection, address):
+        self.__log_connection_data("Listing directory contents", address)
         my_path = os.getcwd()
         f_list = os.listdir(my_path)
         e_list = pickle.dumps(f_list)
         connection.send(e_list)
 
-    def __send_file_details(self, connection, command_and_args):
-        print("Get a file")
+    def __send_file_details(self, connection, command_and_args, address):
+        self.__log_connection_data("Get a file", address)
         if len(command_and_args) < 2:
             e_list = pickle.dumps("Error: No filename provided with get!")
             connection.send(e_list)
@@ -96,24 +99,27 @@ class FTPServer:
             if os.path.exists(filename):
                 try:
                     size = os.stat(filename).st_size
+                    self.__log_connection_data("Sending file: " + filename, address)
                     e_list = pickle.dumps("sending " + filename + " size " + str(size))
                     connection.send(e_list)
 
-                    self.__send_file(connection, filename)
+                    self.__send_file(connection, filename, address)
 
                 except FileNotFoundError:
                     # doesn't exist
+                    self.__log_connection_data("File not found: " + filename, address)
                     e_list = pickle.dumps("Error: File not found! " + filename)
                     connection.send(e_list)
                 except:
-                    print("Unexpected error:", sys.exc_info()[0])
+                    self.__log_connection_data("Unexpected error:" + sys.exc_info()[0], address)
                     e_list = pickle.dumps("Error: Unknown error with file! " + filename)
                     connection.send(e_list)
             else:
+                self.__log_connection_data("File not found: " + filename, address)
                 e_list = pickle.dumps("Error: File not found! " + filename)
                 connection.send(e_list)
 
-    def __send_file(self, connection, filename):
+    def __send_file(self, connection, filename, address):
         try:
             file = open(filename, 'rb')
             data = file.read(SEND_BUFFER)
@@ -121,7 +127,7 @@ class FTPServer:
                 connection.send(data)
                 data = file.read(SEND_BUFFER)
         except:
-            print("Unexpected error:", sys.exc_info()[0])
+            self.__log_connection_data("Unexpected error:" + sys.exc_info()[0], address)
             connection.send("Error: Unknown error reading file or sending file " + filename)
 
     def __del__(self):

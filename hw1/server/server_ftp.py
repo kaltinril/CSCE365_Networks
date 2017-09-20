@@ -5,7 +5,6 @@ import os               # Need this for reading from the file system
 import os.path          # Used to read the file
 import threading        # Used to start a separate thread for each new client connection
 import sys              # Used to get ARGV (Argument values)
-import getopt           # Parse the command line arguments so we can have options
 
 # Global settings
 DEFAULT_PORT = 5000

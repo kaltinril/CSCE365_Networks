@@ -1,14 +1,14 @@
 from socket import *
-import pickle
-import shlex
-import sys
+import pickle           # need this for serializing objects
+import shlex            # need this for it's split that keeps quoted filenames
+import sys              # Used to get ARGV (Argument values)
 
 # Global settings
 DEFAULT_PORT = 5000
 DEFAULT_SERVER = "localhost"
 CONNECTION_TIMEOUT = 60  # seconds
-RECEIVE_BUFFER = 768  # bytes
-SEND_BUFFER = 768  # bytes
+RECEIVE_BUFFER = 1024  # bytes
+SEND_BUFFER = 1024  # bytes
 
 
 class FTPClient:

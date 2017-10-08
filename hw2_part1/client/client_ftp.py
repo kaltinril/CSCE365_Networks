@@ -1,7 +1,8 @@
 from socket import *
-import pickle           # need this for serializing objects
-import shlex            # need this for it's split that keeps quoted filenames
-import sys              # Used to get ARGV (Argument values)
+import pickle               # need this for serializing objects
+import shlex                # need this for it's split that keeps quoted filenames
+import sys                  # Used to get ARGV (Argument values)
+from mylib import message     # Python specific format to import custom module
 
 # Global settings
 DEFAULT_PORT = 5000
@@ -9,23 +10,6 @@ DEFAULT_SERVER = "localhost"
 CONNECTION_TIMEOUT = 60  # seconds
 RECEIVE_BUFFER = 1024  # bytes
 SEND_BUFFER = 1024  # bytes
-
-
-class Message:
-    def __init__(self, msg_type, sequence_number, data):
-        self.msg_type = msg_type
-        self.sequence_number = sequence_number
-        self.data = data
-        self.checksum = 0  # TODO: Generate checksum based on data.
-
-    # Private methods
-    @staticmethod
-    def generate_checksum(checksum):
-        # TODO: Implement this
-        return checksum
-
-    def __validate_checksum(self):
-        return self.checksum == self.generate_checksum(self.checksum)
 
 
 class FTPClient:
@@ -40,17 +24,17 @@ class FTPClient:
         # self.client_socket.connect((self.server_name, self.server_port))
         print("Connection Opened with server")
 
-    def send_message(self, message):
-        self.client_socket.sendto(message.encode(), (self.server_name, self.server_port))
+    def send_message(self, msg):
+        self.client_socket.sendto(msg.encode(), (self.server_name, self.server_port))
 
     def get_message(self):
         # Receive a response from the Server and print it
         modified_message, address = self.client_socket.recvfrom(RECEIVE_BUFFER)
         return modified_message
 
-    def command_get(self, message, filename):
+    def command_get(self, msg, filename):
         # Send the get command to the server
-        self.send_message(message)
+        self.send_message(msg)
 
         # Get the bytes that we will be receiving
         modified_message = self.get_message()
@@ -82,9 +66,9 @@ class FTPClient:
         except:
             print("Unexpected error: ", sys.exc_info()[0])
 
-    def command_list(self, message):
+    def command_list(self, msg):
         # Send the get command to the server
-        self.send_message(message)
+        self.send_message(msg)
 
         modified_message = self.get_message()
         f_list = pickle.loads(modified_message)
@@ -103,6 +87,8 @@ def main(argv):
     script_name = argv[0]  # Snag the first argument (The script name
     port_to_use = DEFAULT_PORT
     server_to_use = DEFAULT_SERVER
+
+    m = message.Message("Start", 123, "My Message Data")
 
     # Make sure we have exactly
     if len(argv) != 3:

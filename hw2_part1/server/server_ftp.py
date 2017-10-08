@@ -1,9 +1,10 @@
-from socket import *    # Used for sending and receiving information over sockets
-import shlex            # need this for it's split that keeps quoted filenames
-import pickle           # need this for serializing objects
-import os               # Need this for reading from the file system
-import os.path          # Used to read the file
-import sys              # Used to get ARGV (Argument values)
+from socket import *        # Used for sending and receiving information over sockets
+import shlex                # need this for it's split that keeps quoted filenames
+import pickle               # need this for serializing objects
+import os                   # Need this for reading from the file system
+import os.path              # Used to read the file
+import sys                  # Used to get ARGV (Argument values)
+from mylib import message     # Python specific format to import custom module
 
 # Global settings
 DEFAULT_PORT = 5000
@@ -31,10 +32,10 @@ class FTPServer:
         # Loop until the end of time, or a key press
         while True:
             try:
-                message, address = self.server_socket.recvfrom(RECEIVE_BUFFER)
-                message = message.decode()
-                print(message)
-                self.__check_command(message, self.server_socket, address)
+                msg, address = self.server_socket.recvfrom(RECEIVE_BUFFER)
+                msg = msg.decode()
+                print(msg)
+                self.__check_command(msg, self.server_socket, address)
             except:
                 if self.server_socket.fileno() != -1:
                     self.server_socket.close()

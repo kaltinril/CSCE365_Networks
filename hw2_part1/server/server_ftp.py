@@ -8,26 +8,23 @@ import sys              # Used to get ARGV (Argument values)
 
 # Global settings
 DEFAULT_PORT = 5000
-CONNECTION_TIMEOUT = 60  # seconds
+CONNECTION_TIMEOUT = 10  # seconds
 RECEIVE_BUFFER = 1024  # bytes
 SEND_BUFFER = 1024  # bytes
+
 
 class FTPServer:
     def __init__(self, server_port=DEFAULT_PORT):
         self.server_port = server_port
         self.server_socket = None
         self.conn_socket = None
-        self.threads = []
 
     def open_socket(self):
         # Open a socket
-        self.server_socket = socket(AF_INET, SOCK_STREAM)
+        self.server_socket = socket(AF_INET, SOCK_DGRAM)
 
         # Listen on serverPort for messages
         self.server_socket.bind(('', self.server_port))
-
-        # TCP - Begin listening for traffic
-        self.server_socket.listen(1)
 
         # Wait for input, and respond
         print("The server is ready to receive")
@@ -35,14 +32,12 @@ class FTPServer:
     def listen(self):
         # Blocking wait for a "SYN" message, break on CTRL+C
         while True:
-            self.conn_socket, address = self.server_socket.accept()
             self.conn_socket.settimeout(CONNECTION_TIMEOUT)
 
             # Start a new thread for this accepted connection
             t = threading.Thread(target=self.worker, args=(self.conn_socket, address))
             print("Accepting connection from " + str(address))
-            self.threads.append(t)
-            t.start()
+
 
     def worker(self, connection, address):
         # Loop until the end of time, or a key press

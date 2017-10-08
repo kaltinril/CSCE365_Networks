@@ -11,6 +11,23 @@ RECEIVE_BUFFER = 1024  # bytes
 SEND_BUFFER = 1024  # bytes
 
 
+class Message:
+    def __init__(self, msg_type, sequence_number, data):
+        self.msg_type = msg_type
+        self.sequence_number = sequence_number
+        self.data = data
+        self.checksum = 0  # TODO: Generate checksum based on data.
+
+    # Private methods
+    @staticmethod
+    def generate_checksum(checksum):
+        # TODO: Implement this
+        return checksum
+
+    def __validate_checksum(self):
+        return self.checksum == self.generate_checksum(self.checksum)
+
+
 class FTPClient:
     def __init__(self, server_port=DEFAULT_PORT, server_name=DEFAULT_SERVER):
         self.server_port = server_port
@@ -19,16 +36,16 @@ class FTPClient:
 
     def open_socket(self):
         # Open a socket
-        self.client_socket = socket(AF_INET, SOCK_STREAM)
-        self.client_socket.connect((self.server_name, self.server_port))
+        self.client_socket = socket(AF_INET, SOCK_DGRAM)
+        # self.client_socket.connect((self.server_name, self.server_port))
         print("Connection Opened with server")
 
     def send_message(self, message):
-        self.client_socket.send(message.encode())
+        self.client_socket.sendto(message.encode(), (self.server_name, self.server_port))
 
     def get_message(self):
         # Receive a response from the Server and print it
-        modified_message = self.client_socket.recv(RECEIVE_BUFFER)
+        modified_message = self.client_socket.recvfrom(RECEIVE_BUFFER)
         return modified_message
 
     def command_get(self, message, filename):
@@ -51,7 +68,7 @@ class FTPClient:
             data = " - "
             received_data = 0
             while data:
-                data = self.client_socket.recv(RECEIVE_BUFFER)
+                data = self.client_socket.recvfrom(RECEIVE_BUFFER)
                 file.write(data)
                 received_data = received_data + len(data)
                 if received_data >= size:

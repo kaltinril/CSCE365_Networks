@@ -45,7 +45,7 @@ class FTPClient:
 
     def get_message(self):
         # Receive a response from the Server and print it
-        modified_message = self.client_socket.recvfrom(RECEIVE_BUFFER)
+        modified_message, address = self.client_socket.recvfrom(RECEIVE_BUFFER)
         return modified_message
 
     def command_get(self, message, filename):
@@ -68,7 +68,7 @@ class FTPClient:
             data = " - "
             received_data = 0
             while data:
-                data = self.client_socket.recvfrom(RECEIVE_BUFFER)
+                data, address = self.client_socket.recvfrom(RECEIVE_BUFFER)
                 file.write(data)
                 received_data = received_data + len(data)
                 if received_data >= size:

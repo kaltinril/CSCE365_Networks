@@ -3,7 +3,6 @@ import shlex            # need this for it's split that keeps quoted filenames
 import pickle           # need this for serializing objects
 import os               # Need this for reading from the file system
 import os.path          # Used to read the file
-import threading        # Used to start a separate thread for each new client connection
 import sys              # Used to get ARGV (Argument values)
 
 # Global settings
@@ -17,7 +16,6 @@ class FTPServer:
     def __init__(self, server_port=DEFAULT_PORT):
         self.server_port = server_port
         self.server_socket = None
-        self.conn_socket = None
 
     def open_socket(self):
         # Open a socket
@@ -30,25 +28,16 @@ class FTPServer:
         print("The server is ready to receive")
 
     def listen(self):
-        # Blocking wait for a "SYN" message, break on CTRL+C
-        while True:
-            self.conn_socket.settimeout(CONNECTION_TIMEOUT)
-
-            # Start a new thread for this accepted connection
-            t = threading.Thread(target=self.worker, args=(self.conn_socket, address))
-            print("Accepting connection from " + str(address))
-
-
-    def worker(self, connection, address):
         # Loop until the end of time, or a key press
         while True:
             try:
-                message = connection.recv(RECEIVE_BUFFER)
+                message, address = self.server_socket.recvfrom(RECEIVE_BUFFER)
                 message = message.decode()
-                self.__check_command(message, connection, address)
+                print(message)
+                self.__check_command(message, self.server_socket, address)
             except:
-                if connection.fileno() != -1:
-                    connection.close()
+                if self.server_socket.fileno() != -1:
+                    self.server_socket.close()
                 return False
 
     # Private methods
@@ -70,26 +59,26 @@ class FTPServer:
             self.__send_file_details(connection_socket, command_and_args, address)
 
         elif command_and_args[0].lower() == "exit":
-            self.__log_connection_data("Clint requested disconnect.", address)
-            self.conn_socket.close()
+            self.__log_connection_data("Client requested disconnect.", address)
+            self.server_socket.close()
 
         else:
             self.__log_connection_data("Invalid command!", address)
             e_list = pickle.dumps("Invalid command! " + command_and_args[0].lower())
-            connection_socket.send(e_list)
+            connection_socket.sendto(e_list, address)
 
     def __send_list(self, connection, address):
         self.__log_connection_data("Listing directory contents", address)
         my_path = os.getcwd()
         f_list = os.listdir(my_path)
         e_list = pickle.dumps(f_list)
-        connection.send(e_list)
+        connection.sendto(e_list, address)
 
     def __send_file_details(self, connection, command_and_args, address):
         self.__log_connection_data("Get a file", address)
         if len(command_and_args) < 2:
             e_list = pickle.dumps("Error: No filename provided with get!")
-            connection.send(e_list)
+            connection.sendto(e_list, address)
         else:
             filename = command_and_args[1]
             if os.path.exists(filename):
@@ -97,7 +86,7 @@ class FTPServer:
                     size = os.stat(filename).st_size
                     self.__log_connection_data("Sending file: " + filename, address)
                     e_list = pickle.dumps("sending " + filename + " size " + str(size))
-                    connection.send(e_list)
+                    connection.sendto(e_list, address)
 
                     self.__send_file(connection, filename, address)
 
@@ -105,32 +94,31 @@ class FTPServer:
                     # doesn't exist
                     self.__log_connection_data("File not found: " + filename, address)
                     e_list = pickle.dumps("Error: File not found! " + filename)
-                    connection.send(e_list)
+                    connection.sendto(e_list, address)
                 except:
                     self.__log_connection_data("Unexpected error:" + sys.exc_info()[0], address)
                     e_list = pickle.dumps("Error: Unknown error with file! " + filename)
-                    connection.send(e_list)
+                    connection.sendto(e_list, address)
             else:
                 self.__log_connection_data("File not found: " + filename, address)
                 e_list = pickle.dumps("Error: File not found! " + filename)
-                connection.send(e_list)
+                connection.sendto(e_list, address)
 
     def __send_file(self, connection, filename, address):
         try:
             file = open(filename, 'rb')
             data = file.read(SEND_BUFFER)
             while data:
-                connection.send(data)
+                connection.sendto(data, address)
                 data = file.read(SEND_BUFFER)
         except:
             self.__log_connection_data("Unexpected error:" + sys.exc_info()[0], address)
-            connection.send("Error: Unknown error reading file or sending file " + filename)
+            connection.sendto("Error: Unknown error reading file or sending file " + filename, address)
 
     def __del__(self):
         # Clean up
         print("Closing the socket")
         self.server_socket.close()
-        self.conn_socket.close()
 
 def print_help(script_name):
     print("Usage: " + script_name + " PORT_NUMBER")

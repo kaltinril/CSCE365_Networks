@@ -2,12 +2,12 @@ from socket import *
 import pickle               # need this for serializing objects
 import shlex                # need this for it's split that keeps quoted filenames
 import sys                  # Used to get ARGV (Argument values)
-from mylib import message     # Python specific format to import custom module
+from mylib import message   # Python specific format to import custom module
 
 # Global settings
 DEFAULT_PORT = 5000
 DEFAULT_SERVER = "localhost"
-CONNECTION_TIMEOUT = 60  # seconds
+CONNECTION_TIMEOUT = 10  # seconds
 RECEIVE_BUFFER = 1024  # bytes
 SEND_BUFFER = 1024  # bytes
 
@@ -79,9 +79,11 @@ class FTPClient:
         print("Closing the socket")
         self.client_socket.close()
 
+
 def print_help(script_name):
     print("Usage:   " + script_name + " SERVER_NAME PORT_NUMBER")
     print("Example: " + script_name + " localhost 5000")
+
 
 def main(argv):
     script_name = argv[0]  # Snag the first argument (The script name

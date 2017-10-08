@@ -9,7 +9,8 @@ class Message:
         self._msg_type = msg_type
         self._sequence_number = sequence_number
         self._data = data
-        self.checksum = None  # TODO: Generate checksum based on data.
+        self.__restrict_data()  # Make sure that if this is an ACK, we clear the data
+        self.checksum = self.__generate_checksum()
 
     # Public Mutator/Accessor properties
     @property
@@ -19,7 +20,7 @@ class Message:
     @msg_type.setter
     def msg_type(self, value):
         # Make sure that we were provided a valid message type.
-        if any(value in s for s in Message.types):
+        if value in Message.types:
             self._msg_type = value
         else:
             raise ValueError("Message Type must be one of the following: "
@@ -42,8 +43,9 @@ class Message:
 
     @data.setter
     def data(self, value):
+        # Data can not be more than the max
         if len(value) > Message.max_data:
-            raise ValueError("Maximum data length" + Message.max_data + " exceeded: " + value)
+            raise ValueError("Maximum data length" + str(Message.max_data) + " exceeded: " + str(value))
         else:
             self._data = value
 
@@ -57,6 +59,12 @@ class Message:
         return checksum == Message.generate_checksum(data)
 
     # Private methods
+
+    def __restrict_data(self):
+        # Per the documentation ack can not send data, set it to ""
+        if self.msg_type == "ack":
+            self.data = ""
+
     # __combine_data:
     # Combines the message type, sequence number, and data in a consistent way
     def __combine_data(self):

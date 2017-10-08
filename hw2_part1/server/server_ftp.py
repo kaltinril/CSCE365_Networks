@@ -4,7 +4,7 @@ import pickle               # need this for serializing objects
 import os                   # Need this for reading from the file system
 import os.path              # Used to read the file
 import sys                  # Used to get ARGV (Argument values)
-from mylib import message     # Python specific format to import custom module
+from mylib import message   # Python specific format to import custom module
 
 # Global settings
 DEFAULT_PORT = 5000

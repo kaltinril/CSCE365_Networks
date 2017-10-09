@@ -195,8 +195,13 @@ def main(argv):
     server = FTPClient(port_to_use, server_to_use)
     server.open_socket()
     server.open_file_to_write(filename)
-    server.command_get(filename)
 
+    begin_time = time.time()
+    server.command_get(filename)
+    end_time = time.time()
+
+    total_seconds = end_time - begin_time
+    print("Total time taken: " + str(total_seconds))
 
 # Start the client
 if __name__ == "__main__":

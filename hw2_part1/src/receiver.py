@@ -14,7 +14,7 @@ CONNECTION_TIMEOUT = 10  # seconds
 RECEIVE_BUFFER = 1460  # bytes
 SEND_BUFFER = 1460  # bytes
 WINDOW_SIZE = 5
-DEBUG = True  # Set to true for more print messages
+DEBUG = False  # Set to true for more print messages
 
 
 class FTPClient:
@@ -50,7 +50,6 @@ class FTPClient:
         except IOError as e:
             if e.errno == errno.EWOULDBLOCK:
                 print("Error: Client timed out, closing connection")
-                time.sleep(1)  # short delay, no tight loops
                 return False
             else:
                 print("Error: " + str(e))

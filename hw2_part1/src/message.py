@@ -3,7 +3,7 @@ import binascii             # Using this as a way to create a checksum
 
 class Message:
     types = {"Start", "data", "ack", "end"}  # Allowed Message Types
-    max_data = 1460
+    max_data = 3000
 
     def __init__(self, msg_type, sequence_number, data):
         self._msg_type = msg_type

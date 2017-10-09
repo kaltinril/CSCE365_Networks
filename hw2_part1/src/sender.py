@@ -11,7 +11,7 @@ import random
 DEFAULT_PORT = 5000
 DEFAULT_SERVER = "localhost"
 CONNECTION_TIMEOUT = 0.5  # seconds
-RECEIVE_BUFFER = 1460  # bytes
+RECEIVE_BUFFER = 1300  # bytes
 SEND_BUFFER = 1300  # bytes
 WINDOW_SIZE = 5
 DEBUG = False  # Set to true for more printed information

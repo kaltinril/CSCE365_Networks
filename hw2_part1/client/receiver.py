@@ -11,6 +11,10 @@ CONNECTION_TIMEOUT = 10  # seconds
 RECEIVE_BUFFER = 1024  # bytes
 SEND_BUFFER = 1024  # bytes
 
+PACKET_SEQ_NUM_POS = 0
+PACKET_EXP_SEQ_NUM_POS = 1
+PACKET_RECV_POS = 2
+
 
 class FTPClient:
     def __init__(self, server_port=DEFAULT_PORT, server_name=DEFAULT_SERVER):
@@ -35,28 +39,34 @@ class FTPClient:
     def command_get(self, filename):
         receiving = True
         m = message.Message("Start", 123, "My Message Data")
+        ack = message.Message("ack", 0, "")
+        packets = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
+
         while receiving:
 
             # receive ack with data
             msg = self.get_message()
 
             # Unpack the object
-            # m = pickle.loads(msg)
+            m = pickle.loads(msg)
 
             # Verify the checksum
-            if m.validate_checksum()
+            if m.is_valid():
+                # Acknowledge packet and send expected sequence number
+                ack.sequence_number = self.__get_expected_sequence(packets)
+                self.send_message(ack)
+            else:
+                print("Error: Expected packet # CRC Error – Segment dropped")
 
-            # Acknowledge packet and send expected sequence number
+    def __get_expected_sequence(self, packets):
+        n = packets[0][PACKET_EXP_SEQ_NUM_POS]  # Set equal to the first packet
 
+        # Loop over the packets, looking for the first that has not been received
+        for p in packets:
+            if p[PACKET_RECV_POS] == 0:
+                n = p[PACKET_EXP_SEQ_NUM_POS]
 
-            # Send the get command to the server
-
-
-            # Get the bytes that we will be receiving
-            # modified_message = self.get_message()
-            # f_list = pickle.loads(modified_message)
-            # print(f_list)
-
+        return n
 
     def __recv_file(self, filename, size):
         try:
@@ -85,17 +95,11 @@ class FTPClient:
 
 
 def print_help(script_name):
-    print("Usage:   " + script_name + " -f <filename> -a <serverAddress> -p <port> -e <error%>")
+    print("Usage:   " + script_name + " -p <port>")
     print("")
-    print(" -f, --file")
-    print("    The filename to send to request from the server")
-    print(" -a, --address")
-    print("    The IP or Hostname to connect to")
     print(" -p, --port")
     print("    The port number to connect to")
-    print(" -e, --error")
-    print("    The numeric value for the percent of packets to cause the packets to error")
-    print("Example: " + script_name + " localhost 5000")
+    print("Example: " + script_name + " -p 5000")
 
 
 def main(argv):
@@ -105,35 +109,22 @@ def main(argv):
     server_to_use = DEFAULT_SERVER
     error_packet_percent = 0
 
-    # Make sure we have exactly
-    if len(argv) != 3:
-        sys.stderr.write("ERROR: Invalid number of arguments\n\n")
-
+    try:
+        opts, args = getopt.getopt(argv, "hp:", ["help", "port="])
+    except getopt.GetoptError:
+        print_help(script_name)
         sys.exit(2)
-    else:
-        try:
-            opts, args = getopt.getopt(argv, "hf:a:p:e:", ["help", "file=", "address=", "port=", "error="])
-        except getopt.GetoptError:
-            print_help(script_name)
-            sys.exit(2)
 
-        for opt, arg in opts:
-            if opt in ("-h", "--help"):
-                print_help(script_name)
-                sys.exit()
-            elif opt in ("-f", "--file"):
-                filename = arg
-            elif opt in ("-a", "--address"):
-                server_to_use = arg
-            elif opt in ("-p", "--port"):
-                port_to_use = arg
-            elif opt in ("-e", "--error"):
-                error_packet_percent = arg
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            print_help(script_name)
+            sys.exit()
+        elif opt in ("-p", "--port"):
+            port_to_use = arg
 
 
     # Create instance of client class, open socket, and send message
-    print("Connecting to " + server_to_use + ":" + str(port_to_use) + " and requesting file: " + filename)
-    print("Creating packet errors " + str(error_packet_percent) + "% of the time")
+    print("Opening port: " + str(port_to_use))
     server = FTPClient(port_to_use, server_to_use)
     server.open_socket()
     server.command_get(filename)

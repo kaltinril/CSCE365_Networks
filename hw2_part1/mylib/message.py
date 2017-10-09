@@ -12,6 +12,10 @@ class Message:
         self.__restrict_data()  # Make sure that if this is an ACK, we clear the data
         self.checksum = self.__generate_checksum()
 
+    # Public methods
+    def is_valid(self):
+        return self.__validate_checksum()
+
     # Public Mutator/Accessor properties
     @property
     def msg_type(self):

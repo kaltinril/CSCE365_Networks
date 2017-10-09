@@ -4,6 +4,7 @@ import pickle               # need this for serializing objects
 import os                   # Need this for reading from the file system
 import os.path              # Used to read the file
 import sys                  # Used to get ARGV (Argument values)
+import getopt               # Friendly command line options
 from mylib import message   # Python specific format to import custom module
 
 # Global settings
@@ -122,19 +123,47 @@ class FTPServer:
         self.server_socket.close()
 
 def print_help(script_name):
-    print("Usage: " + script_name + " PORT_NUMBER")
+    print("Usage:   " + script_name + " -f <filename> -a <serverAddress> -p <port> -e <error%>")
+    print("")
+    print(" -f, --file")
+    print("    The filename to send to request from the server")
+    print(" -a, --address")
+    print("    The IP or Hostname to connect to")
+    print(" -p, --port")
+    print("    The port number to connect to")
+    print(" -e, --error")
+    print("    The numeric value for the percent of packets to cause the packets to error")
+    print("Example: " + script_name + " localhost 5000")
 
 def main(argv):
     script_name = argv[0]  # Snag the first argument (The script name
     port_to_use = DEFAULT_PORT
+    error_packet_percent = 0
 
     # Make sure we have exactly
-    if len(argv) == 2:
-        port_to_use = int(argv[1])
-    elif len(argv) > 2:
-        sys.stderr.write("ERROR: Too many arguments specified\n\n")
+    if len(argv) != 3:
+        sys.stderr.write("ERROR: Invalid number of arguments\n\n")
         print_help(script_name)
         sys.exit(2)
+    else:
+        try:
+            opts, args = getopt.getopt(argv, "hf:a:p:e:", ["help", "file=", "address=", "port=", "error="])
+        except getopt.GetoptError:
+            print_help(script_name)
+            sys.exit(2)
+
+        for opt, arg in opts:
+            if opt in ("-h", "--help"):
+                print_help(script_name)
+                sys.exit()
+            elif opt in ("-f", "--file"):
+                filename = arg
+            elif opt in ("-a", "--address"):
+                server_to_use = arg
+            elif opt in ("-p", "--port"):
+                port_to_use = arg
+            elif opt in ("-e", "--error"):
+                error_packet_percent = arg
 
     server = FTPServer(port_to_use)
     server.open_socket()

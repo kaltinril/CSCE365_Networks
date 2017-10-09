@@ -59,7 +59,7 @@ class Message:
     # Static Methods to be used if we don't have a reference to this
     @staticmethod
     def generate_checksum(data):
-        return binascii.crc32(data.encode())
+        return binascii.crc32(data)
 
     @staticmethod
     def validate_checksum(data, checksum):
@@ -75,7 +75,7 @@ class Message:
     # __combine_data:
     # Combines the message type, sequence number, and data in a consistent way
     def __combine_data(self):
-        return self.msg_type + str(self.sequence_number) + self.data.decode()
+        return self.msg_type.encode() + str(self.sequence_number).encode() + self.data
 
     # __generate_checksum
     # Simple helper method to pass instance variable data into static method

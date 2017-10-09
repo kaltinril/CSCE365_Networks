@@ -16,6 +16,9 @@ class Message:
     def is_valid(self):
         return self.__validate_checksum()
 
+    def update_checksum(self):
+        self.checksum = self.__generate_checksum()
+
     # Public Mutator/Accessor properties
     @property
     def msg_type(self):
@@ -72,7 +75,7 @@ class Message:
     # __combine_data:
     # Combines the message type, sequence number, and data in a consistent way
     def __combine_data(self):
-        return self.msg_type + str(self.sequence_number) + self.data
+        return self.msg_type + str(self.sequence_number) + self.data.decode()
 
     # __generate_checksum
     # Simple helper method to pass instance variable data into static method

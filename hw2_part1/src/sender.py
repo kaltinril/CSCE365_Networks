@@ -5,29 +5,82 @@ import os                   # Need this for reading from the file system
 import os.path              # Used to read the file
 import sys                  # Used to get ARGV (Argument values)
 import getopt               # Friendly command line options
-from mylib import message   # Python specific format to import custom module
+import message   # Python specific format to import custom module
 
 # Global settings
 DEFAULT_PORT = 5000
+DEFAULT_SERVER = "localhost"
 CONNECTION_TIMEOUT = 10  # seconds
-RECEIVE_BUFFER = 1024  # bytes
-SEND_BUFFER = 1024  # bytes
-
+RECEIVE_BUFFER = 1460  # bytes
+SEND_BUFFER = 1460  # bytes
+WINDOW_SIZE = 5
 
 class FTPServer:
-    def __init__(self, server_port=DEFAULT_PORT):
+    def __init__(self, filename, server_port=DEFAULT_PORT, server_name=DEFAULT_SERVER, error_percent=0):
         self.server_port = server_port
+        self.server_name = server_name
         self.server_socket = None
+        self.file_handle = None
+        self.filename = filename
+        self.error_percent = error_percent
 
     def open_socket(self):
         # Open a socket
         self.server_socket = socket(AF_INET, SOCK_DGRAM)
 
-        # Listen on serverPort for messages
-        self.server_socket.bind(('', self.server_port))
-
         # Wait for input, and respond
         print("The server is ready to receive")
+
+    def open_file(self, mode="rb"):
+        self.file_handle = open(self.filename, mode)
+
+    def send_message(self, msg):
+        m = pickle.dump(msg)
+        self.client_socket.sendto(m, (self.server_name, self.server_port))
+
+    def get_message(self):
+        # Receive a response from the Server and print it
+        msg, address = self.client_socket.recvfrom(RECEIVE_BUFFER)
+        return pickle.loads(msg)  # Unpack the object
+
+    def send_file(self):
+        not_done = True
+        msg_type = "data"
+        seq_num = 1
+        segments = []
+
+        # read from file
+        data = self.__read_from_file()
+        self.send_message(message.Message("start", seq_num, data))
+        seq_num = seq_num + data
+
+        while not_done:
+            # add read data to message and to buffer
+            msg = message.Message(msg_type, seq_num, data)
+            seq_num = seq_num + data
+
+            # Send message
+            self.send_message(msg)
+
+            # check for acks
+            self.get_message()
+
+            # if no more data change msg_type to end
+            # read from file if buffer space available
+            if len(segments) <= WINDOW_SIZE:
+                data = self.__read_from_file()
+                if not data:
+                    msg_type = "end"
+                    data = ""
+
+    def __read_from_file(self):
+        try:
+            data = self.file_handle.read(SEND_BUFFER)
+            return data
+        except:
+            self.__log_connection_data("Error: " + sys.exc_info()[0])
+            return False
+
 
     def listen(self):
         # Loop until the end of time, or a key press
@@ -46,35 +99,6 @@ class FTPServer:
     def __log_connection_data(self, string, address):
         print(str(address[0]) + ":" + str(address[1]) + " - " + string)
 
-    def __check_command(self, command, connection_socket, address):
-        if not command:
-            self.__log_connection_data("Empty command!", address)
-            return
-
-        # Split the string on spaces, if there are quotes, spaces inside that are preserved
-        command_and_args = shlex.split(command)
-
-        if command_and_args[0].lower() == "list":
-            self.__send_list(connection_socket, address)
-
-        elif command_and_args[0].lower() == "get":
-            self.__send_file_details(connection_socket, command_and_args, address)
-
-        elif command_and_args[0].lower() == "exit":
-            self.__log_connection_data("Client requested disconnect.", address)
-            self.server_socket.close()
-
-        else:
-            self.__log_connection_data("Invalid command!", address)
-            e_list = pickle.dumps("Invalid command! " + command_and_args[0].lower())
-            connection_socket.sendto(e_list, address)
-
-    def __send_list(self, connection, address):
-        self.__log_connection_data("Listing directory contents", address)
-        my_path = os.getcwd()
-        f_list = os.listdir(my_path)
-        e_list = pickle.dumps(f_list)
-        connection.sendto(e_list, address)
 
     def __send_file_details(self, connection, command_and_args, address):
         self.__log_connection_data("Get a file", address)
@@ -139,15 +163,19 @@ def main(argv):
     script_name = argv[0]  # Snag the first argument (The script name
     port_to_use = DEFAULT_PORT
     error_packet_percent = 0
+    filename = ""
+    server_to_use = DEFAULT_SERVER
 
     # Make sure we have exactly
-    if len(argv) != 3:
+    if len(argv) < 3:
         sys.stderr.write("ERROR: Invalid number of arguments\n\n")
         print_help(script_name)
         sys.exit(2)
     else:
         try:
-            opts, args = getopt.getopt(argv, "hf:a:p:e:", ["help", "file=", "address=", "port=", "error="])
+            opts, remainder = getopt.getopt(argv[1:], "hf:a:p:e:", ["help", "file=", "address=", "port=", "error="])
+            print(opts)
+            print(remainder)
         except getopt.GetoptError:
             print_help(script_name)
             sys.exit(2)
@@ -165,9 +193,17 @@ def main(argv):
             elif opt in ("-e", "--error"):
                 error_packet_percent = arg
 
-    server = FTPServer(port_to_use)
+    print(opts)
+
+    if filename == "":
+        sys.stderr.write("Error: Filename must be supplied!")
+        print_help(script_name)
+        sys.exit(2)
+
+    server = FTPServer(filename, port_to_use, server_to_use, error_packet_percent)
     server.open_socket()
-    server.listen()
+    server.open_file()
+    server.send_file()
 
 
 # Start the server

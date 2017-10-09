@@ -39,10 +39,10 @@ class Message:
 
     @sequence_number.setter
     def sequence_number(self, value):
-        if value.isumeric():
+        # if value.isumeric():
             self._sequence_number = value
-        else:
-            raise ValueError("Sequence Number supplied must be a positive number")
+        # else:
+        #     raise ValueError("Sequence Number supplied must be a positive number")
 
     @property
     def data(self):
@@ -70,7 +70,7 @@ class Message:
     def __restrict_data(self):
         # Per the documentation ack can not send data, set it to ""
         if self.msg_type == "ack":
-            self.data = ""
+            self.data = "".encode()
 
     # __combine_data:
     # Combines the message type, sequence number, and data in a consistent way

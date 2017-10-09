@@ -1,7 +1,7 @@
 from socket import *
 import sys                  # Used to get ARGV (Argument values)
 import getopt               # Friendly command line options
-from mylib import message   # Python specific format to import custom module
+import message              # Python specific format to import custom module
 import pickle               # need this for serializing objects
 
 import time
@@ -11,9 +11,10 @@ import errno
 DEFAULT_PORT = 5000
 DEFAULT_SERVER = "localhost"
 CONNECTION_TIMEOUT = 10  # seconds
-RECEIVE_BUFFER = 1500  # bytes
-SEND_BUFFER = 1024  # bytes
+RECEIVE_BUFFER = 1460  # bytes
+SEND_BUFFER = 1460  # bytes
 WINDOW_SIZE = 5
+DEBUG = False  # Set to true for more print messages
 
 
 class FTPClient:
@@ -36,19 +37,21 @@ class FTPClient:
         print("INFO: Opened file" + filename + " for output.")
 
     def send_message(self, msg):
-        m = pickle.dump(msg)
+        m = pickle.dumps(msg)
         self.client_socket.sendto(m, (self.server_name, self.server_port))
 
     def get_message(self):
         # Receive a response from the Server and print it
         self.client_socket.settimeout(CONNECTION_TIMEOUT)
-        msg = False
         try:
             msg, address = self.client_socket.recvfrom(RECEIVE_BUFFER)
+            self.server_name = address[0]
+            self.server_port = address[1]
         except IOError as e:
             if e.errno == errno.EWOULDBLOCK:
                 print("Error: Client timed out, closing connection")
                 time.sleep(1)  # short delay, no tight loops
+                return False
             else:
                 print("Error: " + str(e))
                 return False
@@ -57,10 +60,9 @@ class FTPClient:
 
     def command_get(self, filename):
         receiving = True
-        m = message.Message("Start", 123, "My Message Data")
-        ack = message.Message("ack", 0, "")
+        ack = message.Message("ack", 0, "".encode())
         packets = []
-        next_seq = 0
+        next_seq = 1
         sender_done = False
 
         while receiving:
@@ -76,7 +78,7 @@ class FTPClient:
 
             # Verify the checksum
             if m.is_valid():
-
+                print("Debug: Valid") if DEBUG else None
                 # Make sure we have room in the window
                 if len(packets) <= WINDOW_SIZE:
 
@@ -95,12 +97,13 @@ class FTPClient:
 
                         # Update expected next sequence number
                         if next_seq == m.sequence_number:
-                            next_seq = len(m.data)
+                            next_seq = m.sequence_number + len(m.data)
 
                         # Acknowledge packet and send expected sequence number
                         ack.sequence_number = next_seq
                         ack.update_checksum()
                         self.send_message(ack)
+                        print("Debug: Sending Ack") if DEBUG else None
                     else:
                         print("Error: Server sent ack - Segment dropped")
                 else:
@@ -110,17 +113,21 @@ class FTPClient:
 
         # Assume that if the process is over, we are done with the file
         self.file.close()
+        print("INFO: File received, exiting.")
 
     def __dequeue(self, msg_window, next_seq):
         i = len(msg_window) - 1
         while i >= 0:
             msg = msg_window[i]
             if msg.sequence_number < next_seq:
+                print("Debug: Writing data") if DEBUG else None
                 data_written = self.__write_to_file(msg)
 
                 # If we were successful, delete the packet
                 if data_written:
+                    print("Debug: Deleting from Window") if DEBUG else None
                     del msg_window[i]
+            i = i - 1
 
     def __write_to_file(self, msg):
         data = msg.data

@@ -5,6 +5,7 @@ import message   # Python specific format to import custom module
 import pickle               # need this for serializing objects
 import errno
 import time
+import random
 
 # Global settings
 DEFAULT_PORT = 5000
@@ -13,7 +14,7 @@ CONNECTION_TIMEOUT = 0.5  # seconds
 RECEIVE_BUFFER = 1460  # bytes
 SEND_BUFFER = 1300  # bytes
 WINDOW_SIZE = 5
-DEBUG = False  # Set to true for more printed information
+DEBUG = True  # Set to true for more printed information
 
 class FTPServer:
     def __init__(self, filename, server_port=DEFAULT_PORT, server_name=DEFAULT_SERVER, error_percent=0):
@@ -22,7 +23,7 @@ class FTPServer:
         self.server_socket = None
         self.file_handle = None
         self.filename = filename
-        self.error_percent = error_percent
+        self.error_percent = float(error_percent)
 
     def open_socket(self):
         # Open a socket
@@ -46,8 +47,8 @@ class FTPServer:
             self.server_name = address[0]
             self.server_port = address[1]
         except IOError as e:
-            if e.errno == errno.EWOULDBLOCK:
-                print("Error: Client timed out, closing connection")
+            if e.errno == errno.EWOULDBLOCK or e.errno == errno.ETIMEDOUT or str(e) == "timed out":
+                print("Error: Client timed out - will resend")
                 time.sleep(1)  # short delay, no tight loops
                 return False
             else:
@@ -64,21 +65,21 @@ class FTPServer:
 
         # read from file
         data = self.__read_from_file()
-        msg = message.Message("start", seq_num, data)
-        self.send_message(msg)
-        seq_num = seq_num + len(data)
-        segments.append(msg)
-
-        data = self.__read_from_file()
-        if not data:
-            msg_type = "end"
-            data = ""
 
         while not_done:
+
             # add read data to message and to buffer
-            msg = message.Message(msg_type, seq_num, data)
+            if seq_num == 1:
+                msg = message.Message("start", seq_num, data)
+            else:
+                msg = message.Message(msg_type, seq_num, data)
+
+            if random.random() < (self.error_percent / 100):
+                msg.checksum = 1
+
             seq_num = seq_num + len(data)
-            segments.append(msg)
+
+            self.__append_segment(segments, msg)
 
             # Send message
             print("Debug: " + msg.msg_type) if DEBUG else None
@@ -98,18 +99,33 @@ class FTPServer:
 
                 # if no more data change msg_type to end
                 # read from file if buffer space available
-                if len(segments) <= WINDOW_SIZE:
+                if len(segments) <= WINDOW_SIZE and msg_type != "end":
                     data = self.__read_from_file()
                     if not data:
                         msg_type = "end"
                         data = "".encode()
+                        msg = message.Message(msg_type, seq_num, data)
+                        self.__append_segment(segments, msg)
             else:
                 print("Error: ack not received - resending packet")
+                seq_num = seq_num - len(data)
+
+            print("Debug: segments " + str(len(segments)) + " " + " msg_type: " + msg_type) if DEBUG else None
 
             if msg_type == "end" and len(segments) == 0:
                 print("INFO: File done sending.")
-                break
+                not_done = False
 
+    def __append_segment(self, segments, msg):
+        found = False
+        for s in segments:
+            if s.sequence_number == msg.sequence_number:
+                found = True
+                print("Debug: Found sequence") if DEBUG else None
+
+        if not found:
+            segments.append(msg)
+            print("Debug: Appended") if DEBUG else None
 
     def __dequeue(self, segments, ackd_seq):
         i = len(segments) - 1
@@ -118,7 +134,7 @@ class FTPServer:
 
             # Was this the packet that was ackd?
             if msg.sequence_number + len(msg.data) == ackd_seq:
-                print("Debug: Deleting from Window") if DEBUG else None
+                print("Debug: Deleting " + str(msg.sequence_number) + " " + msg.msg_type + " from Window") if DEBUG else None
                 del segments[i]
 
             i = i - 1

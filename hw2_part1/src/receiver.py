@@ -14,7 +14,7 @@ CONNECTION_TIMEOUT = 10  # seconds
 RECEIVE_BUFFER = 1460  # bytes
 SEND_BUFFER = 1460  # bytes
 WINDOW_SIZE = 5
-DEBUG = False  # Set to true for more print messages
+DEBUG = True  # Set to true for more print messages
 
 
 class FTPClient:
@@ -76,36 +76,42 @@ class FTPClient:
             if not m:
                 break
 
+            self.__debug_print_packet(m, next_seq)
+
             # Verify the checksum
             if m.is_valid():
                 print("Debug: Valid") if DEBUG else None
-                # Make sure we have room in the window
-                if len(packets) <= WINDOW_SIZE:
 
-                    # If this is the last packet, make sure we know that the sender is done
-                    if m.msg_type == "end":
-                        sender_done = True
+                if m.sequence_number >= next_seq:
+                    # Make sure we have room in the window
+                    if len(packets) <= WINDOW_SIZE:
 
-                    # If sender is done and we got the last expected packet, lets end this.
-                    if sender_done and next_seq == m.sequence_number:
-                        receiving = False
+                        # If this is the last packet, make sure we know that the sender is done
+                        if m.msg_type == "end":
+                            sender_done = True
 
-                    # Ignore acks
-                    if m.msg_type != "ack":
-                        # Add packet info to acknowledged packets (seq_num, next_seq, received)
-                        packets.append(m)
+                        # If sender is done and we got the last expected packet, lets end this.
+                        if sender_done and next_seq == m.sequence_number:
+                            receiving = False
 
-                        # Update expected next sequence number
-                        if next_seq == m.sequence_number:
-                            next_seq = m.sequence_number + len(m.data)
+                        # Ignore acks
+                        if m.msg_type != "ack":
+                            # Add packet info to acknowledged packets (seq_num, next_seq, received)
+                            packets.append(m)
 
-                        # Acknowledge packet and send expected sequence number
-                        ack.sequence_number = next_seq
-                        ack.update_checksum()
-                        self.send_message(ack)
-                        print("Debug: Sending Ack") if DEBUG else None
+                            # Update expected next sequence number
+                            if next_seq == m.sequence_number:
+                                next_seq = m.sequence_number + len(m.data)
+
+                            # Acknowledge packet and send expected sequence number
+                            ack.sequence_number = next_seq
+                            ack.update_checksum()
+                            self.send_message(ack)
+                            print("Debug: Sending Ack") if DEBUG else None
+                        else:
+                            print("Error: Server sent ack - Segment dropped")
                     else:
-                        print("Error: Server sent ack - Segment dropped")
+                        print("Error: Duplicate packet - Segment dropped")
                 else:
                     print("Error: Buffer full - Segment dropped")
             else:
@@ -114,6 +120,11 @@ class FTPClient:
         # Assume that if the process is over, we are done with the file
         self.file.close()
         print("INFO: File received, exiting.")
+
+    def __debug_print_packet(self, msg, next_seq):
+        print("Debug: " + str(msg.sequence_number) + " " + msg.msg_type + " " + str(next_seq)) if DEBUG else None
+
+
 
     def __dequeue(self, msg_window, next_seq):
         i = len(msg_window) - 1

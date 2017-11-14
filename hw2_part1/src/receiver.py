@@ -187,7 +187,7 @@ def main(argv):
         elif opt in ("-f", "--file"):
             filename = arg
         elif opt in ("-p", "--port"):
-            port_to_use = arg
+            port_to_use = int(arg)
 
 
     # Create instance of client class, open socket, and send message

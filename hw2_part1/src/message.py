@@ -4,6 +4,7 @@ import binascii             # Using this as a way to create a checksum
 class Message:
     types = {"Start", "data", "ack", "end"}  # Allowed Message Types
     max_data = 3000
+    exceeded_value = -1  # Indicates we did not get an ack in the allotted time
 
     def __init__(self, msg_type, sequence_number, data):
         self._msg_type = msg_type
@@ -18,6 +19,13 @@ class Message:
 
     def update_checksum(self):
         self.checksum = self.__generate_checksum()
+
+    # Returns TRUE if the checksum is -1
+    # The checksum will be set to -1 by the Timer
+    # if the packet was not acknowledged.
+    # This allows the same data to be stored in the array in the window
+    def timeout_exceeded(self):
+        return self.checksum == self.exceeded_value
 
     # Public Mutator/Accessor properties
     @property

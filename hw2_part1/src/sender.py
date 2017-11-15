@@ -2,9 +2,11 @@ from socket import *        # Used for sending and receiving information over so
 import sys                  # Used to get ARGV (Argument values)
 import getopt               # Friendly command line options
 import message   # Python specific format to import custom module
+import window
 import pickle               # need this for serializing objects
 import errno
 import time
+from threading import Timer
 import random
 
 # Global settings
@@ -24,6 +26,8 @@ class FTPServer:
         self.file_handle = None
         self.filename = filename
         self.error_percent = float(error_percent)
+        self.window = window.Window()
+        self.seq_num = 1
 
     def open_socket(self):
         # Open a socket
@@ -38,6 +42,8 @@ class FTPServer:
     def send_message(self, msg):
         m = pickle.dumps(msg)
         self.server_socket.sendto(m, (self.server_name, self.server_port))
+        t = Timer(0.5, self.__verify_acked, [msg])
+        t.start();
 
     def get_message(self):
         # Receive a response from the Server and print it
@@ -58,89 +64,66 @@ class FTPServer:
 
     def send_file(self):
         not_done = True
-        msg_type = "data"
-        seq_num = 1
-        segments = []
 
-        # read from file
-        data = self.__read_from_file()
-
+        # Loop until done
         while not_done:
+            # send expired packets
+            self.__send_expired_packets()
 
-            # add read data to message and to buffer
-            if seq_num == 1:
-                msg = message.Message("start", seq_num, data)
+            # send new packets (If room in window)
+            self.__send_new_packets()
+
+            # Check for acks (Do not block)
+            # Returns FALSE if their was no data
+            msg = self.get_message()
+            self.window.ack_message(msg)
+            # Remove packets that were successfully ack'd
+
+    def __send_expired_packets(self):
+        for msg in self.window.buffer:
+            # Indicates we did not get an ACK back in required timeframe
+            if msg.timeout_exceeded():
+                print("Error: ack wasn't received - resending packet")
+                msg.update_checksum()  # Correct the checksum so that it can be re-sent
+                self.send_message(msg)
+
+    # Be dumb, don't check to see if the message was removed from the array
+    # After the call ends the msg will go out of scope anyways so should be
+    # cleaned up by garbage collection
+    def __verify_acked(self, msg):
+        msg.checksum = -1
+
+    def __send_new_packets(self):
+        if self.window.is_room():
+            # read next sequence from file
+            data = self.__read_from_file()
+
+            # add data to message
+            if self.seq_num == 1:
+                msg = message.Message("start", self.seq_num, data)
+            elif not data:
+                # If we are past the end of the file send a complete message
+                # Do this by changing the message type
+                # and setting the data to nothing
+                msg = message.Message("end", self.seq_num, "".encode())
             else:
-                msg = message.Message(msg_type, seq_num, data)
+                msg = message.Message("data", self.seq_num, data)
 
+            # Randomly change the checksum to send a "bad" packet
             if random.random() < (self.error_percent / 100):
                 msg.checksum = 1
 
-            seq_num = seq_num + len(data)
-
-            self.__append_segment(segments, msg)
+            # Add msg to window
+            self.window.add_message(msg)
 
             # Send message
             print("Debug: " + msg.msg_type) if DEBUG else None
             self.send_message(msg)
 
-            # check for acks
-            self.server_socket.settimeout(CONNECTION_TIMEOUT)
-            msg = self.get_message()
-
-            # Validate checksum of ack, as long as it was successful
-            if msg:
-                if msg.is_valid():
-                    print("Debug: valid") if DEBUG else None
-                    if msg.msg_type == "ack":
-                        print("Debug: Ack") if DEBUG else None
-                        self.__dequeue(segments, msg.sequence_number)
-
-                # if no more data change msg_type to end
-                # read from file if buffer space available
-                if len(segments) <= WINDOW_SIZE and msg_type != "end":
-                    data = self.__read_from_file()
-                    if not data:
-                        msg_type = "end"
-                        data = "".encode()
-                        msg = message.Message(msg_type, seq_num, data)
-                        self.__append_segment(segments, msg)
-            else:
-                print("Error: ack not received - resending packet")
-                seq_num = seq_num - len(data)
-
-            print("Debug: segments " + str(len(segments)) + " " + " msg_type: " + msg_type) if DEBUG else None
-
-            if msg_type == "end" and len(segments) == 0:
-                print("INFO: File done sending.")
-                not_done = False
-
-    def __append_segment(self, segments, msg):
-        found = False
-        for s in segments:
-            if s.sequence_number == msg.sequence_number:
-                found = True
-                print("Debug: Found sequence") if DEBUG else None
-
-        if not found:
-            segments.append(msg)
-            print("Debug: Appended") if DEBUG else None
-
-    def __dequeue(self, segments, ackd_seq):
-        i = len(segments) - 1
-        while i >= 0:
-            msg = segments[i]
-
-            # Was this the packet that was ackd?
-            if msg.sequence_number + len(msg.data) == ackd_seq:
-                print("Debug: Deleting " + str(msg.sequence_number) + " " + msg.msg_type + " from Window") if DEBUG else None
-                del segments[i]
-
-            i = i - 1
-
     def __read_from_file(self):
         try:
             data = self.file_handle.read(SEND_BUFFER)
+            self.seq_num = self.seq_num + len(data)  # We may have only read a few bytes because we are at end of file
             return data
         except:
             self.__log_connection_data("Error: " + sys.exc_info()[0])

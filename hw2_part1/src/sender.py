@@ -16,7 +16,7 @@ CONNECTION_TIMEOUT = 0.5  # seconds
 RECEIVE_BUFFER = 1300  # bytes
 SEND_BUFFER = 1300  # bytes
 WINDOW_SIZE = 5
-DEBUG = False  # Set to true for more printed information
+DEBUG = True  # Set to true for more printed information
 
 class FTPServer:
     def __init__(self, filename, server_port=DEFAULT_PORT, server_name=DEFAULT_SERVER, error_percent=0):
@@ -28,6 +28,7 @@ class FTPServer:
         self.error_percent = float(error_percent)
         self.window = window.Window()
         self.seq_num = 1
+        self.send_complete = False
 
     def open_socket(self):
         # Open a socket
@@ -47,14 +48,13 @@ class FTPServer:
 
     def get_message(self):
         # Receive a response from the Server and print it
-        self.server_socket.settimeout(CONNECTION_TIMEOUT)
+        self.server_socket.settimeout(0) # Non-blocking mode
         try:
             msg, address = self.server_socket.recvfrom(RECEIVE_BUFFER)
             self.server_name = address[0]
             self.server_port = address[1]
         except IOError as e:
             if e.errno == errno.EWOULDBLOCK or e.errno == errno.ETIMEDOUT or str(e) == "timed out":
-                print("Error: Client timed out - will resend")
                 return False
             else:
                 print("Error: " + str(e))
@@ -76,8 +76,14 @@ class FTPServer:
             # Check for acks (Do not block)
             # Returns FALSE if their was no data
             msg = self.get_message()
-            self.window.ack_message(msg)
-            # Remove packets that were successfully ack'd
+            while msg:
+                # Remove packets that were successfully ack'd
+                self.window.ack_message(msg)
+                msg = self.get_message()
+
+            if self.send_complete and self.window.is_empty():
+                print("INFO: File done sending.")
+                not_done = False
 
     def __send_expired_packets(self):
         for msg in self.window.buffer:
@@ -101,13 +107,17 @@ class FTPServer:
             # add data to message
             if self.seq_num == 1:
                 msg = message.Message("start", self.seq_num, data)
+                print("Debug: Sending start ") if DEBUG else None
             elif not data:
                 # If we are past the end of the file send a complete message
                 # Do this by changing the message type
                 # and setting the data to nothing
                 msg = message.Message("end", self.seq_num, "".encode())
+                self.send_complete = True
             else:
                 msg = message.Message("data", self.seq_num, data)
+
+            self.seq_num = self.seq_num + len(data)  # We may have only read a few bytes because we are at end of file
 
             # Randomly change the checksum to send a "bad" packet
             if random.random() < (self.error_percent / 100):
@@ -123,7 +133,6 @@ class FTPServer:
     def __read_from_file(self):
         try:
             data = self.file_handle.read(SEND_BUFFER)
-            self.seq_num = self.seq_num + len(data)  # We may have only read a few bytes because we are at end of file
             return data
         except:
             self.__log_connection_data("Error: " + sys.exc_info()[0])

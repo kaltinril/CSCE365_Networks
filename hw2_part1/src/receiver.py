@@ -14,7 +14,7 @@ CONNECTION_TIMEOUT = 10  # seconds
 RECEIVE_BUFFER = 1460  # bytes
 SEND_BUFFER = 1460  # bytes
 WINDOW_SIZE = 5
-DEBUG = False  # Set to true for more print messages
+DEBUG = True  # Set to true for more print messages
 
 
 class FTPClient:
@@ -106,7 +106,7 @@ class FTPClient:
                             ack.sequence_number = next_seq
                             ack.update_checksum()
                             self.send_message(ack)
-                            print("Debug: Sending Ack") if DEBUG else None
+                            print("Debug: Sending Ack " + str(next_seq)) if DEBUG else None
                         else:
                             print("Error: Server sent ack - Segment dropped")
                     else:
@@ -122,8 +122,6 @@ class FTPClient:
 
     def __debug_print_packet(self, msg, next_seq):
         print("Debug: " + str(msg.sequence_number) + " " + msg.msg_type + " " + str(next_seq)) if DEBUG else None
-
-
 
     def __dequeue(self, msg_window, next_seq):
         i = len(msg_window) - 1

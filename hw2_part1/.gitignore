@@ -1,6 +1,3 @@
-# Sub-folder specific user files for Idea
-**/.idea/workspace.xml
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

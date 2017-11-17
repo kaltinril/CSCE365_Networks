@@ -36,7 +36,7 @@ class FTPServer:
         self.server_socket = socket(AF_INET, SOCK_DGRAM)
 
         # Wait for input, and respond
-        print("INFO: The server is ready to receive")
+        print("INFO: Sender connected and ready to send file")
 
     def open_file(self, mode="rb"):
         self.file_handle = open(self.filename, mode)
@@ -117,7 +117,7 @@ class FTPServer:
         msg.checksum = -1
 
     def __send_new_packets(self):
-        if self.window.is_room():
+        while self.window.is_room():
             # read next sequence from file
             data = self.__read_from_file()
 

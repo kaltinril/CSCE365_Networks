@@ -11,10 +11,10 @@ import errno
 DEFAULT_PORT = 5000
 DEFAULT_SERVER = "localhost"
 CONNECTION_TIMEOUT = 10  # seconds
-RECEIVE_BUFFER = 1460  # bytes
-SEND_BUFFER = 1460  # bytes
+RECEIVE_BUFFER = 1500  # bytes
+SEND_BUFFER = 1500  # bytes
 WINDOW_SIZE = 5
-DEBUG = True  # Set to true for more print messages
+DEBUG = False  # Set to true for more print messages
 
 
 class FTPClient:
@@ -35,7 +35,7 @@ class FTPClient:
     def open_file_to_write(self, filename):
         self.filename = filename
         self.file = open(filename, 'wb')
-        print("INFO: Opened file" + filename + " for output.")
+        print("INFO: Opened file " + filename + " for output.")
 
     def send_message(self, msg):
         m = pickle.dumps(msg)
@@ -111,10 +111,10 @@ class FTPClient:
 
                         print("Error: Buffer full - Segment dropped")
                 else:
-                    print("Error: Duplicate packet - Segment dropped") if DEBUG else None
+                    print("Error: Duplicate packet - Segment dropped")
                     # Acknowledge packet and send expected sequence number
             else:
-                print("Error: Expected packet # CRC Error – Segment dropped") if DEBUG else None
+                print("Error: Expected packet # CRC Error – Segment dropped")
 
             # Remove packets from the queue up to next_seq, since next_seq is always in-order
             self.__dequeue(packets)
@@ -169,7 +169,7 @@ class FTPClient:
         if lowest_index >= 0:
             msg = msg_window[lowest_index]
             # if msg.sequence_number <= self.next_seq:
-            print("Debug: Writing data " + str(msg.sequence_number))  # if DEBUG else None
+            print("Debug: Writing data " + str(msg.sequence_number)) if DEBUG else None
             data_written = self.__write_to_file(msg)
 
             # If we were successful, delete the packet

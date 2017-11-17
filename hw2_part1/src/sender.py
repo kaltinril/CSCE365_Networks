@@ -29,6 +29,7 @@ class FTPServer:
         self.window = window.Window()
         self.seq_num = 1
         self.send_complete = False
+        self.thread_pool = {}
 
     def open_socket(self):
         # Open a socket
@@ -44,11 +45,15 @@ class FTPServer:
         m = pickle.dumps(msg)
         self.server_socket.sendto(m, (self.server_name, self.server_port))
         t = Timer(0.5, self.__verify_acked, [msg])
-        t.start();
+
+        # Add the Timer to the thread pool
+        self.thread_pool[msg.sequence_number] = t
+
+        t.start()
 
     def get_message(self):
         # Receive a response from the Server and print it
-        self.server_socket.settimeout(0) # Non-blocking mode
+        self.server_socket.settimeout(0)  # Non-blocking mode
         try:
             msg, address = self.server_socket.recvfrom(RECEIVE_BUFFER)
             self.server_name = address[0]
@@ -79,11 +84,23 @@ class FTPServer:
             while msg:
                 # Remove packets that were successfully ack'd
                 self.window.ack_message(msg)
+
+                # Cleanup threads for ack'd messages by canceling them
+                self.__cleanup_threads(msg.sequence_number)
+
                 msg = self.get_message()
 
             if self.send_complete and self.window.is_empty():
                 print("INFO: File done sending.")
                 not_done = False
+
+    def __cleanup_threads(self, current_ack):
+        # Get all threads in the pool that need to be canceled
+        for seq in list(self.thread_pool.keys()):
+            if seq < current_ack:
+                # Cancel the thread and then delete it from the pool
+                self.thread_pool[seq].cancel()
+                del self.thread_pool[seq]
 
     def __send_expired_packets(self):
         for msg in self.window.buffer:

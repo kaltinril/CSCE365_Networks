@@ -56,7 +56,8 @@ class Window:
             print("DEBUG: Didn't find any matching packets " + str(ackd_seq))
 
     def is_room(self):
-        return len(self.buffer) <= self.buffer_size
+        # print("DEBUG: Window Buffer size: " + str(len(self.buffer))) if DEBUG else None
+        return len(self.buffer) < self.buffer_size
 
     def is_empty(self):
         return len(self.buffer) == 0

@@ -110,9 +110,13 @@ class FTPClient:
                         else:
                             print("Error: Server sent ack - Segment dropped")
                     else:
-                        print("Error: Duplicate packet - Segment dropped")
+                        print("DEBUG: Printing Sequences of full buffer") if DEBUG else None
+                        for pack in packets:
+                            print("DEBUG: Seq " + str(pack.sequence_number)) if DEBUG else None
+
+                        print("Error: Buffer full - Segment dropped")
                 else:
-                    print("Error: Buffer full - Segment dropped")
+                    print("Error: Duplicate packet - Segment dropped")
             else:
                 print("Error: Expected packet # CRC Error – Segment dropped")
 

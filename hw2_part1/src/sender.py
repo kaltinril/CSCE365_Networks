@@ -16,7 +16,7 @@ CONNECTION_TIMEOUT = 0.5  # seconds
 RECEIVE_BUFFER = 1300  # bytes
 SEND_BUFFER = 1300  # bytes
 WINDOW_SIZE = 5
-DEBUG = True  # Set to true for more printed information
+DEBUG = False  # Set to true for more printed information
 
 class FTPServer:
     def __init__(self, filename, server_port=DEFAULT_PORT, server_name=DEFAULT_SERVER, error_percent=0):

@@ -24,6 +24,7 @@ class FTPClient:
         self.client_socket = None
         self.file = None
         self.filename = ""
+        self.next_seq = 1
 
     def open_socket(self):
         # Open a socket
@@ -61,13 +62,9 @@ class FTPClient:
         receiving = True
         ack = message.Message("ack", 0, "".encode())
         packets = []
-        next_seq = 1
         sender_done = False
 
         while receiving:
-            # Remove packets from the queue up to next_seq, since next_seq is always in-order
-            self.__dequeue(packets, next_seq)
-
             # receive data packet and unpack it
             m = self.get_message()
 
@@ -75,38 +72,36 @@ class FTPClient:
             if not m:
                 break
 
-            self.__debug_print_packet(m, next_seq)
+            self.__debug_print_packet(m)
 
             # Verify the checksum
             if m.is_valid():
                 print("Debug: Valid") if DEBUG else None
 
-                if m.sequence_number >= next_seq:
+                # Dup check
+                if m.sequence_number >= self.next_seq:
                     # Make sure we have room in the window
-                    if len(packets) <= WINDOW_SIZE:
+                    if len(packets) < WINDOW_SIZE:
 
                         # If this is the last packet, make sure we know that the sender is done
                         if m.msg_type == "end":
                             sender_done = True
 
                         # If sender is done and we got the last expected packet, lets end this.
-                        if sender_done and next_seq == m.sequence_number:
+                        if sender_done and self.next_seq == m.sequence_number:
                             receiving = False
 
                         # Ignore acks
                         if m.msg_type != "ack":
                             # Add packet info to acknowledged packets (seq_num, next_seq, received)
-                            packets.append(m)
+                            self.__append_if_not_dup(packets, m)
+
 
                             # Update expected next sequence number
-                            if next_seq == m.sequence_number:
-                                next_seq = m.sequence_number + len(m.data)
+                            #if self.next_seq == m.sequence_number:
+                            #    self.next_seq = m.sequence_number + len(m.data)
 
-                            # Acknowledge packet and send expected sequence number
-                            ack.sequence_number = next_seq
-                            ack.update_checksum()
-                            self.send_message(ack)
-                            print("Debug: Sending Ack " + str(next_seq)) if DEBUG else None
+
                         else:
                             print("Error: Server sent ack - Segment dropped")
                     else:
@@ -116,30 +111,72 @@ class FTPClient:
 
                         print("Error: Buffer full - Segment dropped")
                 else:
-                    print("Error: Duplicate packet - Segment dropped")
+                    print("Error: Duplicate packet - Segment dropped") if DEBUG else None
+                    # Acknowledge packet and send expected sequence number
             else:
-                print("Error: Expected packet # CRC Error – Segment dropped")
+                print("Error: Expected packet # CRC Error – Segment dropped") if DEBUG else None
+
+            # Remove packets from the queue up to next_seq, since next_seq is always in-order
+            self.__dequeue(packets)
+
+            # Acknowledge packet and send expected sequence number
+            ack.sequence_number = self.next_seq
+            ack.update_checksum()
+            self.send_message(ack)
+            print("Debug: Sending Ack " + str(self.next_seq)) if DEBUG else None
 
         # Assume that if the process is over, we are done with the file
         self.file.close()
         print("INFO: File received, exiting.")
 
-    def __debug_print_packet(self, msg, next_seq):
-        print("Debug: " + str(msg.sequence_number) + " " + msg.msg_type + " " + str(next_seq)) if DEBUG else None
+    def __append_if_not_dup(self, packets, msg):
+        found = False
+        for s in packets:
+            if s.sequence_number == msg.sequence_number:
+                found = True
+                print("Debug: Found sequence, skipping add. " + str(msg.sequence_number)) if DEBUG else None
 
-    def __dequeue(self, msg_window, next_seq):
+        if len(packets) < WINDOW_SIZE:
+            if not found:
+                packets.append(msg)
+                print("Debug: Appended message to window " + str(msg.sequence_number)) if DEBUG else None
+        else:
+            print("Debug: No room in window!") if DEBUG else None
+        # TODO: Add error message for more robust programming if no room
+
+
+    def __debug_print_packet(self, msg):
+        print("Debug: " + str(msg.sequence_number) + " " + msg.msg_type + " " + str(self.next_seq)) if DEBUG else None
+
+    def __dequeue(self, msg_window):
+
+        # Sort the array
+        msg_window.sort(key=lambda x: x.sequence_number)
+
+        lowest_index = -1
+        # Find the lowest sequence number less than or equal to the current next_Seq
+        lowest_seq = self.next_seq + 1
         i = len(msg_window) - 1
         while i >= 0:
             msg = msg_window[i]
-            if msg.sequence_number < next_seq:
-                print("Debug: Writing data") if DEBUG else None
-                data_written = self.__write_to_file(msg)
+            if msg.sequence_number < lowest_seq:
+                lowest_seq = msg.sequence_number
+                lowest_index = i
 
-                # If we were successful, delete the packet
-                if data_written:
-                    print("Debug: Deleting from Window") if DEBUG else None
-                    del msg_window[i]
             i = i - 1
+
+        # If we found one, use it
+        if lowest_index >= 0:
+            msg = msg_window[lowest_index]
+            # if msg.sequence_number <= self.next_seq:
+            print("Debug: Writing data " + str(msg.sequence_number))  # if DEBUG else None
+            data_written = self.__write_to_file(msg)
+
+            # If we were successful, delete the packet
+            if data_written:
+                print("Debug: Deleting from Window " + str(msg.sequence_number)) if DEBUG else None
+                del msg_window[lowest_index]
+                self.next_seq = msg.sequence_number + len(msg.data)  # Move the next_seq up
 
     def __write_to_file(self, msg):
         data = msg.data

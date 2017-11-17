@@ -1,7 +1,7 @@
 import message              # Python specific format to import custom module
 
 #Globals
-DEBUG = True  # Set to true for more printed information
+DEBUG = False  # Set to true for more printed information
 
 class Window:
 
@@ -29,9 +29,9 @@ class Window:
     def ack_message(self, msg):
         if msg:
             if msg.is_valid():
-                print("Debug: valid") if DEBUG else None
+                print("Debug: valid msg " + str(msg.sequence_number)) if DEBUG else None
                 if msg.msg_type == "ack":
-                    print("Debug: Ack") if DEBUG else None
+                    print("Debug: Received Ack " + str(msg.sequence_number)) if DEBUG else None
                     self.__dequeue(msg.sequence_number)
             else:
                 print("Debug: Invalid message!") if DEBUG else None
@@ -45,7 +45,7 @@ class Window:
             print("DEBUG: Attempt Dequeue on " + str(msg.sequence_number) + " with len " + str(len(msg.data))) if DEBUG else None
 
             # Was this the packet that was ackd?
-            if msg.sequence_number + len(msg.data) == ackd_seq:
+            if msg.sequence_number + len(msg.data) <= ackd_seq:
                 print("Debug: Deleting " + str(msg.sequence_number) + " " + msg.msg_type + " from Window") if DEBUG else None
                 del self.buffer[i]
                 ackd_something = True
